@@ -21,7 +21,13 @@ spec:
   - name: devices
     image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
     imagePullPolicy: {{ .Values.tmcprototype.image.pullPolicy }}
-    command: ["python3", "/app/tmcprototype/addDevicesAndProperties.py"]
+    command:
+          - /usr/local/bin/wait-for-it.sh
+          - databaseds-{{ template "integration-tmc-webui.name" . }}-{{ .Release.Name }}:10000
+          - --timeout=30
+          - --strict
+          - --
+          - echo "Databaseds ready for use."
     env:
     - name: TANGO_HOST
       value: databaseds-{{ template "integration-tmc-webui.name" . }}-{{ .Release.Name }}:10000

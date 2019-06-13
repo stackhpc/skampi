@@ -37,30 +37,6 @@ spec:
     - name: TANGO_HOST
       value: databaseds-{{ template "integration-tmc-webui.name" . }}-{{ .Release.Name }}:10000
 
-  - name: configure-alarms
-    image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
-    imagePullPolicy: {{ .Values.tmcprototype.image.pullPolicy }}
-    command:
-      - sh
-    args:
-      - -c
-      - "/venv/bin/python /app/tmcprototype/TMAlarmHandler/configure_alarms.py"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-{{ template "integration-tmc-webui.name" . }}-{{ .Release.Name }}:10000
-
-  - name: conf-polling-events
-    image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
-    imagePullPolicy: {{ .Values.tmcprototype.image.pullPolicy }}
-    command:
-      - sh
-    args:
-      - -c
-      - "/venv/bin/python /app/tmcprototype/configurePollingAndEvents.py"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-{{ template "integration-tmc-webui.name" . }}-{{ .Release.Name }}:10000
-
 {{- with .Values.tmcprototype.env }}
 {{ toYaml . | indent 4 }}
 {{- end }}

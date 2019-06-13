@@ -50,6 +50,13 @@ itango:
     tag: latest
     pullPolicy: IfNotPresent
 
+dsconfig:
+  image:
+    registry: nexus.engageska-portugal.pt/ska-docker
+    image: tango-dsconfig
+    tag: latest
+    pullPolicy: IfNotPresent
+
 tangotest:
   enabled: true
   image:
