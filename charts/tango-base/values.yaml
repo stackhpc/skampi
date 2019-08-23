@@ -11,7 +11,7 @@ tangodb:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-db
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   db:
     rootpw: secret
     db: tango
@@ -28,7 +28,7 @@ databaseds:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-cpp
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   resources:
     requests:
       cpu: 200m     # 200m = 0.2 CPU
@@ -40,7 +40,7 @@ itango:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-itango
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 tangotest:
   enabled: true
@@ -48,7 +48,7 @@ tangotest:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-java
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 jive:
   enabled: false
@@ -56,7 +56,7 @@ jive:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-java
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 logviewer:
   enabled: false
@@ -64,7 +64,7 @@ logviewer:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-java
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 nodeSelector: {}
 
