@@ -1,0 +1,15 @@
+dependencies:
+  - name: csp-proto
+    condition: csp-proto.enabled
+  - name: oet
+    condition: oet.enabled
+  - name: sdp-prototype
+    condition: sdp-prototype.enabled
+  - name: tango-base
+    condition: tango-base.enabled
+  - name: tests
+    condition: tests.enabled
+  - name: tmc-proto
+    condition: tmc-proto.enabled
+  - name: webjive
+    condition: webjive.enabled

@@ -1,0 +1,34 @@
+
+SKAMPI deployed!
+
+{{- if index .Values "oet" "enabled" }}
+
+To connect to the observation execution tool SSH interface, use:
+
+    $ export OET_PORT=`kubectl get svc/oet-ssh {{ if ne .Release.Namespace "default" }}-n {{ .Release.Namespace }} {{ end }}-o jsonpath={..nodePort}`
+    $ export OET_HOST=`minikube ip`
+    $ ssh tango@$OET_HOST -p $OET_PORT
+
+Use "localhost" for OET_HOST if you are using Docker for Desktop or
+MicroK8s. The default SSH password is "oet".
+{{- end }}
+{{- if index .Values "sdp-prototype" "enabled" }}
+
+To connect to the SDP configuration database:
+
+   $ export SDP_CONFIG_PORT=`kubectl get svc/{{ .Release.Name }}-sdp-prototype-etcd-nodeport {{ if ne .Release.Namespace "default" }}-n {{ .Release.Namespace }} {{ end }}-o jsonpath="{..nodePort}"`
+   $ pip install -U ska-sdp-config
+   $ sdpcfg ls /pb/
+
+Note that unless Kubernetes is installed locally (e.g. using Docker),
+you will also need to set SDP_CONFIG_HOST. For instance for Minikube:
+
+   $ export SDP_CONFIG_HOST=`minikube ip`
+{{- end }}
+
+{{- if index .Values "tango-base" "itango" "enabled" }}
+
+To connect to the Tango interface via iTango, use:
+
+    $ kubectl exec -it itango-tango-base-{{ .Release.Name }} {{ if ne .Release.Namespace "default" }}-n {{ .Release.Namespace }} {{ end }}/venv/bin/itango3
+{{- end }}

@@ -1,0 +1,35 @@
+
+# Set Helm charts to deploy
+
+tango-base:
+  enabled: true
+  tangodb:
+    enabled: true
+  databaseds:
+    enabled: true
+  itango:
+    enabled: true
+  tangotest:
+    enabled: false
+  jive:
+    enabled: false
+  logviewer:
+    enabled: false
+
+csp-proto:
+  enabled: true
+
+oet:
+  enabled: true
+
+sdp-prototype:
+  enabled: true
+
+tests:
+  enabled: false
+
+tmc-proto:
+  enabled: true
+
+webjive:
+  enabled: true
