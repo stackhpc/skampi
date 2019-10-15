@@ -4,6 +4,7 @@ stages:
   - lint
   - clean
   - deploy
+  - lifecycle
 
 lint:
   stage: lint
@@ -12,16 +13,6 @@ lint:
   allow_failure: true
   script:
   - make lint_all
-
-clean test: 
-  stage: clean
-  tags:
-  - docker-executor
-  script:
-  - make delete_all KUBE_NAMESPACE=integration
-  environment:
-    name: test
-  when: manual
 
 clean test: 
   stage: clean
@@ -74,3 +65,13 @@ deploy staging:
   only:
     refs:
       - staging
+
+clean test: 
+  stage: lifecycle
+  tags:
+  - docker-executor
+  script:
+  - make delete_all KUBE_NAMESPACE=integration
+  environment:
+    name: test
+  when: manual
