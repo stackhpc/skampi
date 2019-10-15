@@ -14,17 +14,20 @@ lint:
   script:
   - make lint_all
 
-clean test: 
+delete-and-deploy staging: 
   stage: clean
   tags:
   - docker-executor
   script:
-  - make delete_all KUBE_NAMESPACE=integration
+  - make delete_all KUBE_NAMESPACE=staging
+  - make deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt
+  - kubectl get all,pv,pvc,ingress -n staging
   environment:
-    name: test
+    name: staging
   only:
     refs:
       - schedules
+      - staging
 
 clean staging: 
   stage: clean
