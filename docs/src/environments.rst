@@ -12,6 +12,7 @@ The branch for this environment is the master.
 A trigger example is the following one: 
 
 .. code-block:: console
+
   trigger: 
     image: appropriate/curl 
     stage: trigger 
@@ -21,6 +22,7 @@ A trigger example is the following one:
         - curl -X POST -F token=$SKAMPI_TOKEN -F ref=$SKAMPI_TARGET_BRANCH https://gitlab.com/api/v4/projects/$SKAMPI_PROJ_ID/trigger/pipeline
 
 This will make obtain the following advantages:
+
 * A successful commit (that is the pipeline succeeded) in a sub-project repository (like the tmc-prototype) starts the deployment in the integration environment for all the containers defined in the helm chart. 
 * Update of the integration environment happens continuously
 * Teams won’t care about releases
