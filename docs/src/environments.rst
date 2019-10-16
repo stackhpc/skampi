@@ -9,16 +9,14 @@ In the test environment, the helm chart pull policy for the docker images must b
 
 A trigger example is the following one: 
 
-```
-trigger: 
-  image: appropriate/curl 
-  stage: trigger 
-  tags: 
-  - docker-executor 
-  script: 
-      - curl -X POST -F token=$SKAMPI_TOKEN -F ref=$SKAMPI_TARGET_BRANCH https://gitlab.com/api/v4/projects/$SKAMPI_PROJ_ID/trigger/pipeline
-
-```
+.. code-block:: console
+  trigger: 
+    image: appropriate/curl 
+    stage: trigger 
+    tags: 
+    - docker-executor 
+    script: 
+        - curl -X POST -F token=$SKAMPI_TOKEN -F ref=$SKAMPI_TARGET_BRANCH https://gitlab.com/api/v4/projects/$SKAMPI_PROJ_ID/trigger/pipeline
 
 This will make obtain the following advantages:
 * A successful commit (that is the pipeline succeeded) in a sub-project repository (like the tmc-prototype) starts the deployment in the integration environment for all the containers defined in the helm chart. 
