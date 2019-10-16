@@ -7,6 +7,8 @@ Test environment
 ----------------
 In the test environment, the helm chart pull policy for the docker images must be “Always” and the image tag must be "latest". A trigger must be defined for every Gitlab repository so that when the pipeline succeeded, it triggers the pipeline of the SKAMPI repository. 
 
+The branch for this environment is the master. 
+
 A trigger example is the following one: 
 
 .. code-block:: console
@@ -27,3 +29,4 @@ Staging environment
 -------------------
 In the staging environment, the helm chart pull policy for the docker images must be “IfNotPresent” and the image tag must be a specific version. The pipeline of the SKAMPI repository will be triggered by a change in an helm chart. 
 
+The branch for this environment is the staging. 
