@@ -59,6 +59,7 @@ deploy test:
 
 deploy staging:
   stage: deploy
+  retry: 2
   tags:
   - docker-executor
   script:  
