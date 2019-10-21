@@ -92,7 +92,7 @@ delete-and-deploy staging:
   tags:
   - docker-executor
   script:
-  - make delete_all KUBE_NAMESPACE=staging
+  - make delete_all KUBE_NAMESPACE=staging HELM_RELEASE=staging
   - make deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
   environment:
     name: staging
