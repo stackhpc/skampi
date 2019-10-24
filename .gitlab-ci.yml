@@ -30,6 +30,7 @@ delete test:
 
 delete staging: 
   stage: clean
+  retry: 2
   tags:
   - docker-executor
   script:
