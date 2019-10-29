@@ -3,7 +3,7 @@ MAKEPATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 BASEDIR := $(notdir $(patsubst %/,%,$(dir $(MAKEPATH))))
 
 # find IP addresses of this machine, setting THIS_HOST to the first address found
-THIS_HOST := $(shell ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | head -n1)
+THIS_HOST := $(shell (ip a 2> /dev/null || ifconfig) | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | head -n1)
 DISPLAY := $(THIS_HOST):0
 XAUTHORITYx ?= ${XAUTHORITY}
 KUBE_NAMESPACE ?= default## Kubernetes Namespace to use
@@ -39,14 +39,14 @@ k8s_test = tar -c test-harness/ | \
 		--image-pull-policy=IfNotPresent \
 		--image=$(IMAGE_TO_TEST) -- \
 		/bin/bash -c "tar xv --strip-components 1 --warning=all && \
-		make TANGO_HOST=databaseds-$(HELM_CHART)-$(HELM_RELEASE):10000 $1; \
-		mkdir build; \
-		mv -f setup_py_test.stdout build; \
-		mv -f report.json build; \
-		mv -f report.xml build; \
-		tar -czvf /tmp/build.tgz build; \
-		echo '~~~~BOUNDARY~~~~'; \
-		cat /tmp/build.tgz | base64; \
+		make TANGO_HOST=databaseds-$(HELM_CHART)-$(HELM_RELEASE):10000 $1 && \
+		mkdir build && \
+		mv -f setup_py_test.stdout build && \
+		mv -f report.json build && \
+		mv -f report.xml build && \
+		tar -czvf /tmp/build.tgz build && \
+		echo '~~~~BOUNDARY~~~~' && \
+		cat /tmp/build.tgz | base64 && \
 		echo '~~~~BOUNDARY~~~~'" \
 		>/dev/null 2>&1
 
