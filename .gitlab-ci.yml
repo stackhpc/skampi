@@ -99,7 +99,7 @@ k8s_test staging environment:
   tags:
   - docker-executor
   script:  
-  - make k8s_test KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging && [ -d "build/report.xml" ]
+  - make k8s_test KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
   environment:
     name: staging
     url: http://kubernetes.engageska-portugal.pt/testdb
