@@ -80,7 +80,7 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
-  - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -d "build/report.xml" ]
+  - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -f "build/report.xml" ]
   environment:
     name: test
     url: http://integration.engageska-portugal.pt/testdb
@@ -99,7 +99,7 @@ k8s_test staging environment:
   tags:
   - docker-executor
   script:  
-  - make k8s_test KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
+  - make k8s_test KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging && [ -f "build/report.xml" ]
   environment:
     name: staging
     url: http://kubernetes.engageska-portugal.pt/testdb
