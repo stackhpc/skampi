@@ -76,7 +76,10 @@ delete-and-deploy test environment:
   script:
   - make delete_all KUBE_NAMESPACE=sarao HELM_RELEASE=sarao
   - make deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt HELM_RELEASE=sarao
+  - kubectl describe ingresses --all-namespaces
+  - kubectl describe -n kube-system pod $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - sleep 5m 
+  - kc logs -n kube-system  $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - kubectl logs -n sarao deployment.apps/logstash-deployment-logging-sarao
   - kubectl logs -n sarao deployment.apps/kibana-logging-sarao
   - kubectl logs -n sarao deployment.apps/elastic-logging-sarao
