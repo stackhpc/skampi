@@ -80,6 +80,7 @@ print-debug-info:
   - kubectl logs --tail=100 -n sarao deployment.apps/logstash-deployment-logging-sarao
   - kubectl logs --tail=100 -n sarao deployment.apps/kibana-logging-sarao
   - kubectl logs --tail=100 -n sarao deployment.apps/elastic-logging-sarao
+  - kubectl logs --tail=100 -n sarao $(kubectl get pod -n sarao | grep fluentd | cut -d\  -f1)
   - exit 42
   environment:
     name: test
