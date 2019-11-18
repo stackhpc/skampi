@@ -21,10 +21,6 @@ spec:
         backend:
           serviceName: elastic-{{ template "logging.name" . }}-{{ .Release.Name }}
           servicePort: 9200
-      - path: "/{{ .Values.kibana.baseUrl }}/elasticsearch"
-        backend:
-          serviceName: elastic-{{ template "logging.name" . }}-{{ .Release.Name }}
-          servicePort: 9200
 {{ else }}
 # traefik
 
@@ -43,10 +39,6 @@ spec:
       http:
         paths:
         - path: /elasticsearch
-          backend:
-            serviceName: elastic-{{ template "logging.name" . }}-{{ .Release.Name }}
-            servicePort: 9200
-        - path: "/{{ .Values.kibana.baseUrl }}/elasticsearch"
           backend:
             serviceName: elastic-{{ template "logging.name" . }}-{{ .Release.Name }}
             servicePort: 9200
