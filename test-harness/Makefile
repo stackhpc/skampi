@@ -5,6 +5,8 @@
 SHELL = /bin/bash
 .SHELLFLAGS = -o pipefail -c
 
+HELM_RELEASE ?= test## Helm Chart release name
+
 all: test
 
 # wait for the device to be available before beginning the test
@@ -12,7 +14,7 @@ all: test
 # The following steps copy across useful output to this volume which can
 # then be extracted to form the CI summary for the test procedure.
 test:
-	python setup.py test | tee setup_py_test.stdout
+	HELM_RELEASE=$(HELM_RELEASE) python setup.py test | tee setup_py_test.stdout
 	if [ -d /build ]; then \
 		mv setup_py_test.stdout /build; \
 		mv htmlcov /build; \

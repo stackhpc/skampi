@@ -1,3 +1,4 @@
+import os
 import pytest
 import requests
 import json
@@ -24,8 +25,8 @@ def requests_retry_session(retries=3,
     session.mount('https://', adapter)
     return session
 
-#TODO parametise and get this from k8s config somehow
-HOSTNAME = "kibana-logging-test"
+assert os.environ.get('HELM_RELEASE') is not None
+HOSTNAME = "kibana-logging-{}".format(os.environ.get('HELM_RELEASE'))
 BASE_PATH = "/kibana"
 
 def test_kibana_should_be_accessible_via_ingress():
