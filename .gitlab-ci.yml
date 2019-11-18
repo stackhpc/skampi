@@ -65,6 +65,9 @@ k8s_test test environment:
     paths: ['build/report.json']
     reports:
       junit: build/report.xml
+  allow_failure: true
+
+
 
 delete-and-deploy test environment:
   stage: lifecycle
