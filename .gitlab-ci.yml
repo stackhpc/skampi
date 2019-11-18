@@ -17,6 +17,7 @@ stages:
   - clean
   - deploy
   - test
+  -  debug
   - lifecycle
 
 lint:
@@ -67,7 +68,20 @@ k8s_test test environment:
       junit: build/report.xml
   allow_failure: true
 
-
+print-debug-info:
+  stage: debug
+  tags:
+  - docker-executor
+  script:
+  - kubectl describe ingresses --all-namespaces
+  - kubectl describe -n kube-system pod $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
+  - kubectl logs -n kube-system  $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
+  - kubectl logs -n sarao deployment.apps/logstash-deployment-logging-sarao
+  - kubectl logs -n sarao deployment.apps/kibana-logging-sarao
+  - kubectl logs -n sarao deployment.apps/elastic-logging-sarao
+  environment:
+    name: test
+  when: manual
 
 delete-and-deploy test environment:
   stage: lifecycle
