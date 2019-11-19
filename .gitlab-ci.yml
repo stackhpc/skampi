@@ -83,7 +83,7 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
-  - pip install -U pip setuptools 
+  - pip install --upgrade python3-setuptools 
   - git clone --recursive https://github.com/kubernetes-client/python.git
   - cd python
   - python3 setup.py install
