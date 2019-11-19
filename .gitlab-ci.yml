@@ -83,9 +83,10 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
+  - pip install -U pip setuptools 
   - git clone --recursive https://github.com/kubernetes-client/python.git
   - cd python
-  - python setup.py install
+  - python3 setup.py install
   - cd ..
   - pytest ./scripts/test_infra3.py
   - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -f "build/report.xml" ]
