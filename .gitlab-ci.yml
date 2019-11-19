@@ -83,12 +83,11 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
-  - ./scripts/smoketest.sh
   - git clone --recursive https://github.com/kubernetes-client/python.git
   - cd python
   - python setup.py install
   - cd ..
-  - python ./scripts/infrastructure_test.py
+  - pytest ./scripts/test_infra3.py
   - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -f "build/report.xml" ]
   environment:
     name: test
