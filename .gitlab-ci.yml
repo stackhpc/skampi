@@ -79,10 +79,9 @@ print-debug-info:
   - kubectl describe ingresses --all-namespaces
   - kubectl describe -n kube-system pod $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - kubectl logs --tail=100 -n kube-system  $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
-  - kubectl logs --tail=100 -n sarao deployment.apps/logstash-deployment-logging-sarao
-  - kubectl logs --tail=100 -n sarao deployment.apps/kibana-logging-sarao
-  - kubectl logs --tail=100 -n sarao deployment.apps/elastic-logging-sarao
+  - kubectl get pods -n sarao -o name | xargs -I{}  sh -c 'echo && echo {}  && kubectl logs --tail=100 -n sarao {}'
   - kubectl logs --tail=100 -n integration $(kubectl get pod -n integration   | grep fluentd | head -n 1  | cut -d\  -f1)
+  - kubectl get all --all-namespaces
   - exit 42
   environment:
     name: test
@@ -100,9 +99,7 @@ delete-and-deploy test environment:
   - kubectl describe -n kube-system pod $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - sleep 5m 
   - kubectl logs -n kube-system  $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
-  - kubectl logs -n sarao deployment.apps/logstash-deployment-logging-sarao
-  - kubectl logs -n sarao deployment.apps/kibana-logging-sarao
-  - kubectl logs -n sarao deployment.apps/elastic-logging-sarao
+  - kubectl get pods -n sarao -o name | xargs -I{}  sh -c 'echo && echo {}  && kubectl logs -n sarao {}'
   environment:
     name: test
   when: manual
