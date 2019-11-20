@@ -68,7 +68,7 @@ k8s_test test environment:
       junit: build/report.xml
   allow_failure: true
 
-print-debug-info:
+run-debug-cmd:
   stage: debug
   variables:
     DEBUG_CMD: echo noop
@@ -76,13 +76,21 @@ print-debug-info:
   - docker-executor
   script:
   - /bin/sh -exc "$DEBUG_CMD"
+  when:
+    manual
+  allow_failure: true
+
+print-debug-info:
+  stage: debug
+  tags:
+  - docker-executor
+  script:
   - kubectl describe ingresses --all-namespaces
   - kubectl describe -n kube-system pod $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - kubectl logs --tail=100 -n kube-system  $(kubectl get pod -n kube-system | grep traefik | cut -d\  -f1)
   - kubectl get pods -n sarao -o name | xargs -I{}  sh -c 'echo && echo {}  && kubectl logs --tail=100 -n sarao {}'
   - kubectl logs --tail=100 -n integration $(kubectl get pod -n integration   | grep fluentd | head -n 1  | cut -d\  -f1)
   - kubectl get all --all-namespaces
-  - exit 42
   environment:
     name: test
   when: manual
