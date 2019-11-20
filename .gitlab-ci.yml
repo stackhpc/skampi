@@ -169,8 +169,7 @@ run-debug-cmd:
   - docker-executor
   script:
   - /bin/sh -exc "$DEBUG_CMD"
-  when:
-    manual
+  when: manual
   allow_failure: true
 
 print-debug-info:
