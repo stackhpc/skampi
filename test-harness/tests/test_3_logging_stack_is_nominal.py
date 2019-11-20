@@ -26,13 +26,11 @@ def requests_retry_session(retries=3,
     session.mount('https://', adapter)
     return session
 
-assert os.environ.get('HELM_RELEASE') is not None
-HOSTNAME = "kibana-logging-{}".format(os.environ.get('HELM_RELEASE'))
-BASE_PATH = "/kibana"
-
 @pytest.mark.skip('Unblock the skampi pipeline while we work on fixes in SAR-31')
-def test_kibana_should_be_accessible_via_ingress():
-    print('*********************************************')
+def test_kibana_should_be_accessible_via_ingress(run_context):
+    HOSTNAME = "kibana-logging-{}".format(run_context.HELM_RELEASE)
+    BASE_PATH = "/kibana"
+
     url = "http://{}:5601{}/app/kibana".format(HOSTNAME, BASE_PATH)
     res = requests_retry_session().get(url)
 

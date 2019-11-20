@@ -5,8 +5,6 @@
 SHELL = /bin/bash
 .SHELLFLAGS = -o pipefail -c
 
-HELM_RELEASE ?= test## Helm Chart release name
-
 all: test
 
 # wait for the device to be available before beginning the test
