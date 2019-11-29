@@ -53,7 +53,7 @@ spec:
       volumes:
       - name: elastic-data
         persistentVolumeClaim:
-          claimName: elastic-{{ template "logging.name" . }}-{{ .Release.Name }}
+          claimName: elastic-{{ template "logging.name" . }}-{{ .Release.Namespace }}-{{ .Release.Name }}
 
 ---
 
