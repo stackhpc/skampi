@@ -25,8 +25,8 @@ delete test environment:
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=integration
-  - kubectl delete namespace integration
+  - make helm_delete_all KUBE_NAMESPACE=sarao
+  - kubectl delete namespace sarao
   environment:
     name: test
   only:
@@ -56,13 +56,13 @@ deploy test environment:
   tags:
   - docker-executor
   script:
-  - if [ -n "$HELM_CHART" ]; then make helm_delete KUBE_NAMESPACE=integration; fi;
-  - make helm_deploy_all KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt
-  - kubectl get all,pv,pvc,ingress -n integration
+  - if [ -n "$HELM_CHART" ]; then make helm_delete KUBE_NAMESPACE=sarao; fi;
+  - make helm_deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt
+  - kubectl get all,pv,pvc,ingress -n sarao
   retry: 2
   environment:
     name: test
-    url: http://integration.engageska-portugal.pt/testdb
+    url: http://sarao.engageska-portugal.pt/testdb
   only:
     refs:
       - IP/helm-chart-testing
@@ -88,10 +88,10 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
-  - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -f "build/report.xml" ]
+  - make k8s_test KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt && [ -f "build/report.xml" ]
   environment:
     name: test
-    url: http://integration.engageska-portugal.pt/testdb
+    url: http://sarao.engageska-portugal.pt/testdb
   only:
     refs:
       - IP/helm-chart-testing
@@ -109,7 +109,7 @@ smoketest test environment:
   - ./scripts/smoketest.sh
   environment:
     name: test
-    url: http://integration.engageska-portugal.pt/testdb
+    url: http://sarao.engageska-portugal.pt/testdb
   only:
     refs:
       - IP/helm-chart-testing
@@ -138,12 +138,12 @@ delete-and-deploy test environment:
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=integration
-  - kubectl delete namespace integration
-  - make helm_deploy_all KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt
+  - make helm_delete_all KUBE_NAMESPACE=sarao
+  - kubectl delete namespace sarao
+  - make helm_deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt
   environment:
     name: test
-    url: http://integration.engageska-portugal.pt/testdb
+    url: http://sarao.engageska-portugal.pt/testdb
   when: manual
   only:
     refs:
@@ -179,7 +179,7 @@ run-debug-cmd:
 print-debug-info:
   stage: debug
   variables:
-    KUBE_NAMESPACE: integration
+    KUBE_NAMESPACE: sarao
   tags:
   - docker-executor
   script:
