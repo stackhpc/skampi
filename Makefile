@@ -67,6 +67,7 @@ helm_install_shim = $(if $(helm_is_v2), --name $(HELM_RELEASE) --tiller-namespac
 FULL_RELEASE_NAME := $(HELM_CHART)-$(HELM_RELEASE)
 helm_install_cmd = helm install $(if helm_is_v2,,$(HELM_RELEASE)) charts/$1 \
 		   	$(if helm_is_v2,--name $1-$(HELM_RELEASE) --tiller-namespace $(KUBE_NAMESPACE)) \
+			--atomic \
 			--namespace="$(KUBE_NAMESPACE)" \
 			--set display="$(DISPLAY)" \
 			--set xauthority="$(XAUTHORITYx)" \
