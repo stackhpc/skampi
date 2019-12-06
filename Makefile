@@ -27,7 +27,7 @@ REMOTE_DEBUG ?= false
 #
 IMAGE_TO_TEST ?= nexus.engageska-portugal.pt/ska-docker/tango-itango
 # Test runner - pod always running for testing purposes
-TEST_RUNNER = test-runner-$(HELM_CHART_TEST)-$(FULL_RELEASE_NAME)
+TEST_RUNNER = $(shell kubectl get pod -n $(KUBE_NAMESPACE) | grep test-runner | cut -d\  -f1)
 #
 # defines a function to copy the ./test-harness directory into the K8s TEST_RUNNER
 # and then runs the requested make target in the container.
