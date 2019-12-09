@@ -63,7 +63,7 @@ deploy test environment:
   - if [ -n "$HELM_CHART" ]; then make helm_delete KUBE_NAMESPACE=sarao; fi;
   - make helm_deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt
   - kubectl get all,pv,pvc,ingress -n sarao
-  retry: 2
+  retry: 0
   environment:
     name: test
     url: http://sarao.engageska-portugal.pt/testdb
@@ -73,7 +73,7 @@ deploy test environment:
 
 deploy staging environment:
   stage: deploy
-  retry: 2
+  retry: 0
   tags:
   - docker-executor
   script:  
