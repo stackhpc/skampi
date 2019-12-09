@@ -12,6 +12,7 @@ stages:
   - clean
   - deploy
   - test
+  - cleanup
   - lifecycle
   - debug
 
@@ -135,6 +136,21 @@ k8s_test staging environment:
     paths: ['build/report.json']
     reports:
       junit: build/report.xml
+
+cleanup-on-failure:
+  stage: cleanup
+  tags:
+  - docker-executor
+  script:
+  - make helm_delete_all KUBE_NAMESPACE=sarao
+  - kubectl delete namespace sarao
+  environment:
+    name: test
+    url: http://sarao.engageska-portugal.pt/testdb
+  when: on_failure
+  only:
+    refs:
+      - IP/helm-chart-testing
 
 delete-and-deploy test environment:
   stage: lifecycle
