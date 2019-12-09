@@ -38,6 +38,7 @@ delete test environment:
       - IP/helm-chart-testing
     variables:
       - $DELETE == "true"
+  allow_failure: true
 
 delete staging environment: 
   stage: clean
@@ -54,6 +55,7 @@ delete staging environment:
       - staging
     variables:
       - $DELETE == "true"
+  allow_failure: true
 
 deploy test environment:
   stage: deploy
@@ -151,6 +153,7 @@ cleanup-on-failure:
   only:
     refs:
       - IP/helm-chart-testing
+  allow_failure: true
 
 delete-and-deploy test environment:
   stage: lifecycle
