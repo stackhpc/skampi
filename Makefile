@@ -7,8 +7,8 @@ THIS_HOST := $(shell (ip a 2> /dev/null || ifconfig) | sed -En 's/127.0.0.1//;s/
 DISPLAY := $(THIS_HOST):0
 XAUTHORITYx ?= ${XAUTHORITY}
 KUBE_NAMESPACE ?= default## Kubernetes Namespace to use
-HELM_RELEASE ?= test## Helm Chart release name
 HELM_CHART ?= tango-base## Helm Chart to install (see ./charts)
+HELM_RELEASE ?= $(shell helm ls | grep $(HELM_CHART) | cut -f1)
 HELM_CHART_TEST ?= tests## Helm Chart to install (see ./charts)
 INGRESS_HOST ?= integration.engageska-portugal.pt ## Ingress HTTP hostname
 USE_NGINX ?= false## Use NGINX as the Ingress Controller
@@ -33,11 +33,12 @@ TEST_RUNNER = $(shell kubectl get pod -n $(KUBE_NAMESPACE) | grep test-runner | 
 # and then runs the requested make target in the container.
 # capture the output of the test in a build folder inside the container 
 # 
+TANGO_HOST = $(shell kubectl get pods | grep tangod | cut -d\  -f1)
 k8s_test = kubectl exec -i $(TEST_RUNNER) --namespace $(KUBE_NAMESPACE) -- rm -fr /app/test-harness && \
 		kubectl cp test-harness/ $(KUBE_NAMESPACE)/$(TEST_RUNNER):/app/test-harness && \
 		kubectl exec -i $(TEST_RUNNER) --namespace $(KUBE_NAMESPACE) -- \
 		/bin/bash -c "cd /app/test-harness && \
-		make HELM_RELEASE=$(HELM_RELEASE) TANGO_HOST=databaseds-tango-base-$(HELM_RELEASE):10000 $1 && \
+		make HELM_RELEASE=$(HELM_RELEASE) TANGO_HOST=$(TANGO_HOST):10000 $1 && \
 		mkdir build && \
 		mv -f setup_py_test.stdout build && \
 		mv -f report.json build && \
@@ -60,13 +61,12 @@ k8s_test: ## test the application on K8s
 # stuff for backwards compatibility with helm v2
 HELM_TILLER_PLUGIN := https://github.com/rimusz/helm-tiller
 helm_is_v2 = $(strip $(shell helm version 2> /dev/null | grep SemVer:\"v2\.))
-helm_install_shim = $(if $(helm_is_v2), --name $(HELM_RELEASE) --tiller-namespace $(KUBE_NAMESPACE), $(HELM_RELEASE))
+helm_install_shim = $(if $(helm_is_v2),--tiller-namespace $(KUBE_NAMESPACE),$(HELM_RELEASE))
 
 # helm command to install a chart
 # usage: $(call helm_install_cmd,$(HELM_CHART))
-FULL_RELEASE_NAME := $(HELM_CHART)-$(HELM_RELEASE)
-helm_install_cmd = helm install $(if helm_is_v2,,$(HELM_RELEASE)) charts/$1 \
-		   	$(if helm_is_v2,--name $1-$(HELM_RELEASE) --tiller-namespace $(KUBE_NAMESPACE)) \
+helm_install_cmd = helm install charts/$1 \
+		   	$(if helm_is_v2,--tiller-namespace $(KUBE_NAMESPACE),$(HELM_RELEASE)) \
 			--atomic \
 			--namespace="$(KUBE_NAMESPACE)" \
 			--set display="$(DISPLAY)" \
@@ -78,11 +78,11 @@ helm_install_cmd = helm install $(if helm_is_v2,,$(HELM_RELEASE)) charts/$1 \
 
 # helm command to test a release
 # usage: $(call helm_test_cmd)
-helm_test_cmd = helm test $(FULL_RELEASE_NAME) $(if helm_is_v2,--logs --cleanup)
+helm_test_cmd = helm test $(HELM_RELEASE) $(if helm_is_v2,--logs --cleanup)
 
 # helm command to delete a release
 # usage: $(call helm_test_cmd)
-helm_delete_cmd = helm delete $(FULL_RELEASE_NAME) $(if helm_is_v2,--purge)
+helm_delete_cmd = helm delete $(HELM_RELEASE) $(if helm_is_v2,--purge)
 
 # start the third-party tiller plugin if helmv2
 define tiller-plugin-startup
@@ -111,10 +111,10 @@ helm_init:
 	fi
 
 # deploys/releases a chart via helm
-# usage make helm_deploy HELM_RELEASE=demo HELM_CHART=logging
+# usage make helm_deploy HELM_CHART=logging
 helm_deploy: 
 	$(tiller-plugin-startup)
-	@echo "+++ Deploying chart '$(HELM_CHART)' as release '$(HELM_RELEASE)'."
+	@echo "+++ Deploying chart '$(HELM_CHART)'
 	@$(call helm_install_cmd,$(HELM_CHART))
 	$(tiller-plugin-teardown)
 
@@ -133,21 +133,21 @@ helm_ls:
 
 
 # tests a released helm chart. will deploy it if it isn't already there
-# usage: make helm_test HELM_RELEASE=mytest HELM_CHART=logging
+# usage: make helm_test HELM_CHART=logging
 helm_test: 
 	$(tiller-plugin-startup)
 	@$(call helm_test_cmd)
 	$(tiller-plugin-teardown)
 
 # deletes a deployed/released chart
-# usage: make helm_delete HELM_RELEASE=test
+# usage: make helm_delete
 helm_delete:
 	$(tiller-plugin-startup)
 	@$(call helm_delete_cmd)
 	$(tiller-plugin-teardown)
 
 # deletes all releases specified by KUBE_NAMESPACE and then HELM_RELEASE
-# usage: make helm_delete_all KUBE_NAMESPACE=test HELM_RELEASE=demo
+# usage: make helm_delete_all KUBE_NAMESPACE=test
 helm_delete_all: delete_etcd
 	$(tiller-plugin-startup)
 	helm delete $$(helm ls -q --namespace=$(KUBE_NAMESPACE)) $(if $(helm_is_v2),--purge)
