@@ -104,7 +104,7 @@ deploy_etcd: ## deploy etcd-operator into namespace
 	     | grep -q etcd-operator; then \
 		TMP=`mktemp -d`; \
 		helm fetch stable/etcd-operator --untar --untardir $$TMP && \
-		helm template $(helm_args_shim) $$TMP/etcd-operator -n etc-operator --namespace $(KUBE_NAMESPACE) \
+		helm template $(helm_install_shim) $$TMP/etcd-operator -n etc-operator --namespace $(KUBE_NAMESPACE) \
 		| kubectl apply -n $(KUBE_NAMESPACE) -f -; \
 		rm -rf $$TMP; \
 		n=5; \
@@ -121,7 +121,7 @@ delete_etcd: ## Remove etcd-operator from namespace
 	   | grep -q etcd-operator; then \
 		TMP=`mktemp -d`; \
 		helm fetch stable/etcd-operator --untar --untardir $$TMP && \
-		helm template $(helm_args_shim) $$TMP/etcd-operator -n etc-operator \
+		helm template $(helm_install_shim) $$TMP/etcd-operator -n etc-operator \
 		| kubectl delete -n $(KUBE_NAMESPACE) -f -; \
 		rm -rf $$TMP; \
 	fi
@@ -138,7 +138,7 @@ mkcerts:  ## Make dummy certificates for $(INGRESS_HOST) and Ingress
 	fi
 
 deploy: namespace mkcerts  ## deploy the helm chart
-	@helm template $(helm_args_shim) charts/$(HELM_CHART)/ \
+	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
 				 --namespace $(KUBE_NAMESPACE) \
 	             --set display="$(DISPLAY)" \
 	             --set xauthority="$(XAUTHORITYx)" \
@@ -147,7 +147,7 @@ deploy: namespace mkcerts  ## deploy the helm chart
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" | kubectl apply -f -
 
 show: mkcerts  ## show the helm chart
-	@helm template $(helm_args_shim) charts/$(HELM_CHART)/ \
+	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
 				 --namespace $(KUBE_NAMESPACE) \
 	             --set display="$(DISPLAY)" \
 	             --set xauthority="$(XAUTHORITYx)" \
@@ -156,7 +156,7 @@ show: mkcerts  ## show the helm chart
 	             --set tangoexample.debug="$(REMOTE_DEBUG)"
 
 delete: ## delete the helm chart release
-	@helm template $(helm_args_shim) charts/$(HELM_CHART)/ \
+	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
 				 --namespace $(KUBE_NAMESPACE) \
 	             --set display="$(DISPLAY)" \
 	             --set xauthority="$(XAUTHORITYx)" \
@@ -166,7 +166,7 @@ delete: ## delete the helm chart release
 
 deploy_all: namespace mkcerts deploy_etcd  ## deploy ALL of the helm chart
 	@for i in charts/*; do \
-	helm template $(helm_args_shim) $$i \
+	helm template $(helm_install_shim) $$i \
 				 --namespace $(KUBE_NAMESPACE) \
 	             --set display="$(DISPLAY)" \
 	             --set xauthority="$(XAUTHORITYx)" \
@@ -177,7 +177,7 @@ deploy_all: namespace mkcerts deploy_etcd  ## deploy ALL of the helm chart
 
 delete_all: delete_etcd ## delete ALL of the helm chart release
 	@for i in charts/*; do \
-	helm template $(helm_args_shim) $$i \
+	helm template $(helm_install_shim) $$i \
 				 --namespace $(KUBE_NAMESPACE) \
 	             --set display="$(DISPLAY)" \
 	             --set xauthority="$(XAUTHORITYx)" \
