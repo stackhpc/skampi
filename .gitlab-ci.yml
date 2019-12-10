@@ -1,18 +1,13 @@
 image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
 
-variables:
-  DELETE: "true"
-
 before_script:
   - helm init --client-only
-  - make helm_init #TODO bake this into docker-executor
 
 stages:
   - lint
   - clean
   - deploy
   - test
-  - cleanup
   - lifecycle
   - debug
 
@@ -29,16 +24,15 @@ delete test environment:
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=sarao
-  - kubectl delete namespace sarao
+  - make delete_all KUBE_NAMESPACE=integration
+  - kubectl delete namespace integration
   environment:
     name: test
   only:
     refs:
-      - IP/helm-chart-testing
+      - master
     variables:
       - $DELETE == "true"
-  allow_failure: true
 
 delete staging environment: 
   stage: clean
@@ -46,7 +40,7 @@ delete staging environment:
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=staging HELM_RELEASE=staging
+  - make delete_all KUBE_NAMESPACE=staging HELM_RELEASE=staging
   - kubectl delete namespace staging
   environment:
     name: staging
@@ -55,31 +49,30 @@ delete staging environment:
       - staging
     variables:
       - $DELETE == "true"
-  allow_failure: true
 
 deploy test environment:
   stage: deploy
   tags:
   - docker-executor
   script:
-  - if [ -n "$HELM_CHART" ]; then make helm_delete KUBE_NAMESPACE=sarao; fi;
-  - make helm_deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt
-  - kubectl get all,pv,pvc,ingress -n sarao
-  retry: 0
+  - if [ -n "$HELM_CHART" ]; then make delete KUBE_NAMESPACE=integration; fi;
+  - make deploy_all KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt
+  - kubectl get all,pv,pvc,ingress -n integration
+  retry: 2
   environment:
     name: test
-    url: http://sarao.engageska-portugal.pt/testdb
+    url: http://integration.engageska-portugal.pt/testdb
   only:
     refs:
-      - IP/helm-chart-testing
+      - master
 
 deploy staging environment:
   stage: deploy
-  retry: 0
+  retry: 2
   tags:
   - docker-executor
   script:  
-  - make helm_deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
+  - make deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
   - kubectl get all,pv,pvc,ingress -n staging
   environment:
     name: staging
@@ -94,13 +87,13 @@ k8s_test test environment:
   tags:
   - docker-executor
   script:
-  - make k8s_test KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt && [ -f "build/report.xml" ]
+  - make k8s_test KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt && [ -f "build/report.xml" ]
   environment:
     name: test
-    url: http://sarao.engageska-portugal.pt/testdb
+    url: http://integration.engageska-portugal.pt/testdb
   only:
     refs:
-      - IP/helm-chart-testing
+      - master
   artifacts:
     name: "report.json"
     paths: ['build/report.json']
@@ -115,10 +108,10 @@ smoketest test environment:
   - ./scripts/smoketest.sh
   environment:
     name: test
-    url: http://sarao.engageska-portugal.pt/testdb
+    url: http://integration.engageska-portugal.pt/testdb
   only:
     refs:
-      - IP/helm-chart-testing
+      - master
 
 k8s_test staging environment:
   stage: test
@@ -139,46 +132,30 @@ k8s_test staging environment:
     reports:
       junit: build/report.xml
 
-cleanup-on-failure:
-  stage: cleanup
-  tags:
-  - docker-executor
-  script:
-  - make helm_delete_all KUBE_NAMESPACE=sarao
-  - kubectl delete namespace sarao
-  environment:
-    name: test
-    url: http://sarao.engageska-portugal.pt/testdb
-  when: on_failure
-  only:
-    refs:
-      - IP/helm-chart-testing
-  allow_failure: true
-
 delete-and-deploy test environment:
   stage: lifecycle
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=sarao
-  - kubectl delete namespace sarao
-  - make helm_deploy_all KUBE_NAMESPACE=sarao INGRESS_HOST=sarao.engageska-portugal.pt
+  - make delete_all KUBE_NAMESPACE=integration
+  - kubectl delete namespace integration
+  - make deploy_all KUBE_NAMESPACE=integration INGRESS_HOST=integration.engageska-portugal.pt
   environment:
     name: test
-    url: http://sarao.engageska-portugal.pt/testdb
+    url: http://integration.engageska-portugal.pt/testdb
   when: manual
   only:
     refs:
-      - IP/helm-chart-testing
+      - master
 
 delete-and-deploy staging environment: 
   stage: lifecycle
   tags:
   - docker-executor
   script:
-  - make helm_delete_all KUBE_NAMESPACE=staging
+  - make delete_all KUBE_NAMESPACE=staging HELM_RELEASE=staging
   - kubectl delete namespace staging
-  - make helm_deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
+  - make deploy_all KUBE_NAMESPACE=staging INGRESS_HOST=kubernetes.engageska-portugal.pt HELM_RELEASE=staging
   environment:
     name: staging
     url: http://kubernetes.engageska-portugal.pt/testdb
@@ -201,7 +178,7 @@ run-debug-cmd:
 print-debug-info:
   stage: debug
   variables:
-    KUBE_NAMESPACE: sarao
+    KUBE_NAMESPACE: integration
   tags:
   - docker-executor
   script:
