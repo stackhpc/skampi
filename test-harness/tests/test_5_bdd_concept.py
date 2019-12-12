@@ -2,7 +2,6 @@
 """
 A reimplementation of some of the basic tests in this directory, implemented using a bdd (Behaviour Driven Design) style. Currently, this is done by copy-paste of parts of the tests; it could reasonably be refactored to call the other functions more directly. However, I (vla22) wanted to partition the existing functions in a particular way, to fit better with the BDD style.
 """
-import pytest
 import itertools
 
 from tango import Database, DeviceProxy
