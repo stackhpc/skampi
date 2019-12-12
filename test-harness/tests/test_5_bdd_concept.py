@@ -32,7 +32,7 @@ def devices_list():
             device_name for device_name in device_classes 
             if "dserver" not in device_name ]
 
-    return device_classes
+    return device_names
 
 
 @when("I check the number of active devices")
