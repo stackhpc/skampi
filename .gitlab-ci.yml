@@ -1,10 +1,18 @@
 image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
 
-before_script:
-  - helm init --client-only
+.init_helm_client: &init_helm_client |-
+  helm init --client-only
+
+.install_ct: &install_ct |-
+  pip install yamllint yamale 
+  curl -Lo ct.tar.gz https://github.com/helm/chart-testing/releases/download/v2.4.0/chart-testing_2.4.0_linux_amd64.tar.gz 
+  tar -xvf ct.tar.gz 
+  mv ct /usr/local/bin/ct 
+  mv etc ~/.ct
 
 stages:
-  - lint
+  - static_analysis
+  - unit_test
   - clean
   - deploy
   - test
@@ -12,13 +20,34 @@ stages:
   - lifecycle
   - debug
 
-lint:
-  stage: lint
+helm-lint:
+  stage: static_analysis
   tags:
   - docker-executor
   allow_failure: true
   script:
   - make lint_all
+
+ct-lint:
+  stage: static_analysis
+  tags:
+  - docker-executor
+  allow_failure: true
+  before_script:
+  - *install_ct
+  script:
+  - ct lint --all
+
+ct-test:
+  stage: unit_test
+  tags:
+  - docker-executor
+  allow_failure: true
+  before_script:
+  - *init_helm_client
+  - *install_ct
+  script:
+  - ct install --namespace ci --build-id $CI_JOB_ID
 
 delete test environment:
   stage: clean
