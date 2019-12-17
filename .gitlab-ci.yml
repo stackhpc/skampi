@@ -47,7 +47,10 @@ ct-test:
   - *init_helm_client
   - *install_ct
   script:
-  - ct install --namespace ci --build-id $CI_JOB_ID
+  - make helm_init
+  - helm tiller start-ci
+  - $(helm tiller env)
+  - ct install --helm-extra-args "--timeout=300" --namespace ci --release-label $CI_COMMIT_REF_NAME --build-id $CI_JOB_ID
 
 delete test environment:
   stage: clean
