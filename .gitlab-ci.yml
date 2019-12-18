@@ -1,14 +1,5 @@
 image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
 
-.init_helm_client: &init_helm_client |-
-  helm init --client-only
-
-.install_helm_unittest: &install_helm_unittest |-
-  helm plugin install https://github.com/lrills/helm-unittest
-
-before_script:
-  - helm init --client-only
-
 stages:
   - static_analysis
   - unit_test
@@ -41,9 +32,6 @@ helm-template-tests:
   tags:
   - docker-executor
   allow_failure: false
-  before_script:
-  - *init_helm_client
-  - *install_helm_unittest
   script:
   - make template_tests
 
@@ -52,10 +40,7 @@ ct-test:
   tags:
   - docker-executor
   allow_failure: true
-  before_script:
-  - *init_helm_client
   script:
-  - make helm_init
   - helm tiller start-ci
   - $(helm tiller env)
   - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID
