@@ -11,6 +11,5 @@ tests:
     asserts:
       - equal:
           path: metadata.name
-          value: fluentd-logging-any-helm-releasse
+          value: fluentd-logging-any-helm-release
 
-    
