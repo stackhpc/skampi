@@ -3,13 +3,6 @@ image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
 .init_helm_client: &init_helm_client |-
   helm init --client-only
 
-.install_ct: &install_ct |-
-  pip install yamllint yamale 
-  curl -Lo ct.tar.gz https://github.com/helm/chart-testing/releases/download/v2.4.0/chart-testing_2.4.0_linux_amd64.tar.gz 
-  tar -xvf ct.tar.gz 
-  mv ct /usr/local/bin/ct 
-  mv etc ~/.ct
-
 .install_helm_unittest: &install_helm_unittest |-
   helm plugin install https://github.com/lrills/helm-unittest
 
@@ -40,11 +33,10 @@ ct-lint:
   - docker-executor
   allow_failure: true
   before_script:
-  - *install_ct
   script:
   - ct lint --all
 
-helm-unittest:
+helm-template-tests:
   stage: static_analysis
   tags:
   - docker-executor
@@ -69,7 +61,6 @@ ct-test:
   allow_failure: true
   before_script:
   - *init_helm_client
-  - *install_ct
   script:
   - make helm_init
   - helm tiller start-ci
