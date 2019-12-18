@@ -10,6 +10,9 @@ image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
   mv ct /usr/local/bin/ct 
   mv etc ~/.ct
 
+.proxy_k8s_api: &proxy_k8s_api |-
+  kubectl proxy --port 8080 &
+
 before_script:
   - helm init --client-only
 
@@ -49,6 +52,7 @@ ct-test:
   before_script:
   - *init_helm_client
   - *install_ct
+  - *proxy_k8s_api
   script:
   - make helm_init
   - helm tiller start-ci
