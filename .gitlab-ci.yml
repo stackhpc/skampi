@@ -53,7 +53,7 @@ ct-test:
   - make helm_init
   - helm tiller start-ci
   - $(helm tiller env)
-  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_NAME --build-id $CI_JOB_ID
+  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID
   environment:
     name: test
   except:
