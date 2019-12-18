@@ -10,6 +10,9 @@ image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
   mv ct /usr/local/bin/ct 
   mv etc ~/.ct
 
+before_script:
+  - helm init --client-only
+
 stages:
   - static_analysis
   - unit_test
