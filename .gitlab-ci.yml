@@ -10,6 +10,9 @@ image: nexus.engageska-portugal.pt/ska-docker/deploy:latest
   mv ct /usr/local/bin/ct 
   mv etc ~/.ct
 
+.install_helm_unittest: &install_helm_unittest |-
+  helm plugin install https://github.com/lrills/helm-unittest
+
 before_script:
   - helm init --client-only
 
@@ -40,6 +43,18 @@ ct-lint:
   - *install_ct
   script:
   - ct lint --all
+
+helm-unittest:
+  stage: static_analysis
+  tags:
+  - docker-executor
+  allow_failure: false
+  before_script:
+  - *init_helm_client
+  - *install_helm_unittest
+  script:
+  - for chrt in $(ls charts/); do helm unittest charts/$chrt; done
+
 
 ct-test:
   stage: unit_test
