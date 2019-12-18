@@ -53,7 +53,13 @@ helm-unittest:
   - *init_helm_client
   - *install_helm_unittest
   script:
-  - for chrt in $(ls charts/); do helm unittest charts/$chrt; done
+  - |
+    rc=0
+    for chrt in $(ls charts/); do
+      helm unittest -f template_tests/*_test.yaml charts/$chrt \
+        || rc=2 && continue
+    done
+    exit $rc
 
 
 ct-test:
