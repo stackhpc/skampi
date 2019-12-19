@@ -167,7 +167,7 @@ k8s_test staging environment:
     reports:
       junit: build/report.xml
 
-run-debug-cmd:
+.run-debug-cmd:
   stage: debug
   variables:
     DEBUG_CMD: echo noop
