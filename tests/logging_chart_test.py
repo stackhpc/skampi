@@ -57,6 +57,27 @@ def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(helm_ada
     assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
 
 
+@pytest.mark.no_deploy
+def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(helm_adaptor):
+    release_name = give_any_release_name()
+    fluentd_daemonset_template = helm_adaptor.template('logging', release_name, 'fluentd-daemonset.yaml')
+    elastic_template = helm_adaptor.template('logging', release_name, 'elastic.yaml')
+
+    elastic_deployment, elastic_svc = parse_yaml_str(elastic_template)
+    fluentd_daemonset = parse_yaml_str(fluentd_daemonset_template).pop()
+
+    expected_env_vars = [
+        {"FLUENT_ELASTICSEARCH_HOST": elastic_deployment['metadata']['name']},
+        {"FLUENT_ELASTICSEARCH_PORT": str(elastic_svc['spec']['ports'].pop()['port'])},
+    ]
+
+    fluentd_container = fluentd_daemonset['spec']['template']['spec']['containers'][0]
+    env_vars = [{v['name']: v['value']} for v in fluentd_container['env']]
+
+    for env_var in expected_env_vars:
+        assert env_var in env_vars
+
+
 def parse_yaml_str(pv_resource_def):
     return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
 
