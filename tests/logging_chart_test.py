@@ -28,6 +28,14 @@ def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(helm_adaptor)
     assert expected_portmapping in elastic_svc['spec']['ports']
 
 
+@pytest.mark.no_deploy
+def test_elastic_curator_set_to_run_once_every_hour(helm_adaptor):
+    curator_template = helm_adaptor.template('logging', give_any_release_name(), 'elastic_curator.yaml')
+    curator_job = parse_yaml_str(curator_template).pop()
+
+    assert curator_job['spec']['schedule'] == '0 1 * * *'
+
+
 def parse_yaml_str(pv_resource_def):
     return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
 
