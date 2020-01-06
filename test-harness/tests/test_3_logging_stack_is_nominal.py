@@ -27,7 +27,6 @@ def requests_retry_session(retries=3,
     return session
 
 
-@pytest.mark.skip("Unblock CI pipeline")
 def test_elasticsearch_is_receiving_requests_via_configured_ingress(run_context, k8s_api):
     ingress = k8s_api.extensions_v1_beta1.read_namespaced_ingress(
             "elastic-ing-logging-{}".format(run_context.HELM_RELEASE),
@@ -45,7 +44,6 @@ def test_elasticsearch_is_receiving_requests_via_configured_ingress(run_context,
     assert res.json()["status"] == "yellow" # TODO change to green once we have a quorum
 
 
-@pytest.mark.skip("Unblock pipeline for now.")
 def test_kibana_should_be_accessible_via_ingress(run_context):
     HOSTNAME = "kibana-logging-{}".format(run_context.HELM_RELEASE)
     BASE_PATH = "/kibana"
