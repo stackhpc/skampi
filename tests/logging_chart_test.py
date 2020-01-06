@@ -36,6 +36,27 @@ def test_elastic_curator_set_to_run_once_every_hour(helm_adaptor):
     assert curator_job['spec']['schedule'] == '0 1 * * *'
 
 
+@pytest.mark.no_deploy
+def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(helm_adaptor):
+    release_name = give_any_release_name()
+    rbac_template = helm_adaptor.template('logging', release_name, 'fluentd-rbac.yaml')
+    daemonset_template = helm_adaptor.template('logging', release_name, 'fluentd-daemonset.yaml')
+
+    serviceaccount, clusterrole, clusterrolebinding = parse_yaml_str(rbac_template)
+    daemonset = parse_yaml_str(daemonset_template).pop()
+    serviceaccount_name = serviceaccount['metadata']['name']
+
+    expected_auth_rule = {
+        "apiGroups": [""],
+        "resources": ["pods", "namespaces"],
+        "verbs": ["get", "list", "watch"]
+    }
+
+    assert expected_auth_rule in clusterrole['rules']
+    assert serviceaccount_name in [s['name'] for s in clusterrolebinding['subjects']]
+    assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
+
+
 def parse_yaml_str(pv_resource_def):
     return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
 
