@@ -1,39 +1,9 @@
-import glob
-import os
-import random
-import string
 from io import StringIO
 
 import pytest
 import yaml
 
-
-class HelmChart(object):
-
-    def __init__(self, name, helm_adaptor):
-        self.name = name
-        self.templates_dir = "charts/{}/templates".format(self.name)
-        self._helm_adaptor = helm_adaptor
-        self._release_name_stub = self.generate_release_name()
-        self._rendered_templates = None
-
-    @property
-    def templates(self):
-        if self._rendered_templates is not None:
-            return self._rendered_templates
-
-        chart_templates = [os.path.basename(fpath) for fpath in (glob.glob("{}/*.yaml".format(self.templates_dir)))]
-        self._rendered_templates = {template: self._helm_adaptor.template(self.name, self._release_name_stub, template)
-                                    for template in
-                                    chart_templates}
-        return self._rendered_templates
-
-    @staticmethod
-    def generate_release_name():
-        def random_alpha(length=7):
-            return ''.join([random.choice(list(string.ascii_lowercase)) for _ in range(length)])
-
-        return "{}-{}".format(random_alpha(), random_alpha())
+from tests.testsupport.helm import HelmChart
 
 
 @pytest.fixture(scope="module")
