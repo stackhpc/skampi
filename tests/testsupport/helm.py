@@ -52,7 +52,7 @@ class ChartDeployment(object):
         self._k8s_api = k8s_api
 
         try:
-            stdout = self._helm_adaptor.install(chart) # actual deployment
+            stdout = self._helm_adaptor.install(chart)  # actual deployment
 
             self.chart_name = chart
             self.release_name = self._parse_release_name_from(stdout)
@@ -66,8 +66,16 @@ class ChartDeployment(object):
     def get_pods(self):
         api_instance = self._k8s_api.CoreV1Api()
         pod_list = api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
-                                                     label_selector="release={}".format(self.release_name))
-        return pod_list.items
+                                                    label_selector="release={}".format(self.release_name)).items
+
+        # TODO enforce a mininum standard set of metadata labels
+        # e.g.  https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels
+        if len(pod_list) == 0:
+            all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
+            pod_list = [pod for pod in all_namespaced_pods if
+                        pod.metadata.name.index(self.release_name) > -1]
+
+        return pod_list
 
     @staticmethod
     def _parse_release_name_from(stdout):
@@ -94,6 +102,9 @@ class HelmChart(object):
                                     for template in
                                     chart_templates}
         return self._rendered_templates
+
+    def render_template(self, template_file, release_name):
+        return self._helm_adaptor.template(self.name, release_name, os.path(self.templates_dir, template_file))
 
     @staticmethod
     def generate_release_name():

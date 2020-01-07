@@ -1,9 +1,11 @@
+import subprocess
 from io import StringIO
+from time import sleep
 
 import pytest
 import yaml
 
-from tests.testsupport.helm import HelmChart
+from tests.testsupport.helm import HelmChart, ChartDeployment
 
 
 @pytest.fixture(scope="module")
@@ -70,6 +72,48 @@ def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(
 
     for env_var in expected_env_vars:
         assert env_var in env_vars
+
+
+@pytest.mark.chart_deploy
+def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, helm_adaptor, k8s_api, test_namespace):
+    # arrange:
+    chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
+
+    api_instance = k8s_api.CoreV1Api()
+    elastic_svc_name = [svc.metadata.name for svc in api_instance.list_namespaced_service(test_namespace).items if
+                        svc.metadata.name.startswith('elastic-')].pop()
+
+    # TODO make port-forward idempotent
+    subprocess.run("kubectl port-forward svc/{} 9200:9200 --namespace {} &".format(elastic_svc_name, test_namespace),
+                   shell=True)
+    sleep(20)  # TODO wait for es to be running
+
+    # act:
+    expected_log = "simple were so well compounded"
+    subprocess.run('kubectl create job testhelper --image=busybox -- echo "{}"'.format(expected_log).split(),
+                   check=True)
+    subprocess.run('kubectl delete job testhelper'.split(), check=True)
+
+    sleep(5)  # allow log to propagate
+
+    # assert:
+    from elasticsearch import Elasticsearch
+    es = Elasticsearch(['127.0.0.1:9200'], use_ssl=False, verify_certs=False, ssl_show_warn=False)
+
+    query_body = {
+        "query": {
+            "match": {
+                "log": expected_log
+            }
+        }
+    }
+
+    result = es.search(
+        index="log*",
+        body=query_body
+    )
+
+    assert len(result['hits']['hits']) > 0
 
 
 def parse_yaml_str(pv_resource_def):
