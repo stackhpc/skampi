@@ -1,4 +1,6 @@
+import socket
 import subprocess
+from datetime import datetime
 from io import StringIO
 from time import sleep
 
@@ -78,6 +80,7 @@ def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, helm_adaptor, k8s_api, test_namespace):
     # arrange:
     chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
+    echoserver_client = deploy_echoserver(test_namespace)
 
     api_instance = k8s_api.CoreV1Api()
     elastic_svc_name = [svc.metadata.name for svc in api_instance.list_namespaced_service(test_namespace).items if
@@ -86,15 +89,13 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     # TODO make port-forward idempotent
     subprocess.run("kubectl port-forward svc/{} 9200:9200 --namespace {} &".format(elastic_svc_name, test_namespace),
                    shell=True)
-    sleep(20)  # TODO wait for es to be running
+    elastic_proxy_is_running = "nc -z 127.0.0.1 9200"
+    wait_until(elastic_proxy_is_running)
 
     # act:
-    expected_log = "simple were so well compounded"
-    subprocess.run('kubectl create job testhelper --image=busybox -- echo "{}"'.format(expected_log).split(),
-                   check=True)
-    subprocess.run('kubectl delete job testhelper'.split(), check=True)
-
-    sleep(5)  # allow log to propagate
+    expected_log = b"simple were so well compounded"
+    echoserver_client.send(expected_log)
+    sleep(10)  # allow log to propagate
 
     # assert:
     from elasticsearch import Elasticsearch
@@ -103,7 +104,9 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     query_body = {
         "query": {
             "match": {
-                "log": expected_log
+                "log": {
+                    "query": expected_log.decode('utf8')
+                }
             }
         }
     }
@@ -114,6 +117,42 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     )
 
     assert len(result['hits']['hits']) > 0
+    subprocess.run('kubectl delete job testhelper --namespace={}'.format(test_namespace).split(), check=True)
+    subprocess.run('pkill kubectl'.split(), check=True)
+
+
+def deploy_echoserver(test_namespace):
+    local_proxy = '127.0.0.1'
+    local_port = 9001
+
+    subprocess.run("kubectl create -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
+                   check=True)
+    pod_is_running = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
+        test_namespace)
+    wait_until(pod_is_running)
+
+    subprocess.run("kubectl port-forward pod/echoserver {}:9001 --namespace {} &".format(local_port, test_namespace),
+                   shell=True)
+    proxy_is_running = "nc -z {} {}".format(local_proxy, local_port)
+    wait_until(proxy_is_running)
+
+    echoserver_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    echoserver_client.connect((local_proxy, local_port))
+    return echoserver_client
+
+
+def wait_until(test_cmd, retry_period=3, retry_timeout=30):
+    retry_start = datetime.now()
+    while True:
+        pod_status = subprocess.run(
+            test_cmd,
+            shell=True, encoding='utf8', stdout=subprocess.PIPE)
+        sleep(retry_period)
+        if (pod_status.returncode == 0):
+            break
+
+        if (datetime.now() - retry_start).seconds >= retry_timeout:
+            raise TimeoutError()
 
 
 def parse_yaml_str(pv_resource_def):
