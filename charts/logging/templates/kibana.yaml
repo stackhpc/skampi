@@ -59,7 +59,7 @@ spec:
           - name: KIBANA_HOST
             value: http://kibana-{{ template "logging.name" . }}-{{ .Release.Namespace }}-{{ .Release.Name }}:5601
         command: ["/bin/sh"]
-        args: ["-c", "apk add curl && curl -XPOST --retry-connrefused --connect-timeout 5 --retry 999  --retry-delay 1 \"${KIBANA_HOST}\"/kibana/api/saved_objects/index-pattern -H \"kbn-xsrf: true\" -H \"Content-Type: application/json\" -d @/tmp/kibana_conf.json "]
+        args: ["-c", "apk add curl && curl -XPOST --retry-connrefused --connect-timeout 5 --retry 999  --retry-delay 1 \"${KIBANA_HOST}\"/kibana/api/saved_objects/index-pattern/ska_logs -H \"kbn-xsrf: true\" -H \"Content-Type: application/json\" -d @/tmp/kibana_conf.json "]
         volumeMounts:
           - name: kibana-config
             mountPath: /tmp/
