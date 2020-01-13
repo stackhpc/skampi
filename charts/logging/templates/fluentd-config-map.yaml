@@ -61,7 +61,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   fluent.conf: |
-  
+
     @include "#{ENV['FLUENTD_SYSTEMD_CONF'] || 'systemd'}.conf"
     @include "#{ENV['FLUENTD_PROMETHEUS_CONF'] || 'prometheus'}.conf"
     @include kubernetes.conf
@@ -88,6 +88,7 @@ data:
       logstash_format "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_FORMAT'] || 'true'}"
       index_name "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_INDEX_NAME'] || 'logstash'}"
       type_name "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_TYPE_NAME'] || 'fluentd'}"
+      pipeline ska_log_parsing_pipeline
       <buffer>
         flush_thread_count "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
         flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
