@@ -10,6 +10,9 @@ stages:
   - lifecycle
   - debug
 
+.pip_install_test_requirements: &pip_install_test_requirements |-
+  pip install -r test-requirements.txt
+
 helm-lint:
   stage: static_analysis
   tags:
@@ -40,6 +43,7 @@ helm-template-pytest:
   - docker-executor
   allow_failure: false
   script:
+  - *pip_install_test_requirements
   - make template_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
   artifacts:
     name: template-pytest-reports
@@ -69,6 +73,7 @@ chart-pytest:
     - helm tiller start-ci
     - $(helm tiller env)
   script:
+    - *pip_install_test_requirements
     - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
   environment:
     name: test
