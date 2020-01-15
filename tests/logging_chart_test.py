@@ -1,3 +1,4 @@
+import logging
 import socket
 import subprocess
 from datetime import datetime
@@ -97,9 +98,20 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     wait_until(elastic_proxy_is_ready)
 
     # act:
+    start = datetime.now()
     expected_log = "simple were so well compounded"
     _print_to_stdout_in_cluster(expected_log)
-    sleep(40)  # allow log to propagate TODO: remove need for sleep()
+
+    def fluentd_ingests_echoserver_logs():
+        fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(chart_deployment.release_name)
+        seconds_since_start = (datetime.now() - start).total_seconds()
+        cmd = "kubectl logs {} -n {} --all-containers --since={}s | grep -q echoserver".format(fluentd_daemonset_name,
+                                                                                               test_namespace,
+                                                                                               seconds_since_start)
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    wait_until(fluentd_ingests_echoserver_logs)
+    sleep(3)
 
     # assert:
     from elasticsearch import Elasticsearch
@@ -157,7 +169,7 @@ def wait_until(test_cmd, retry_period=3, retry_timeout=30):
     while True:
         if test_cmd():
             break
-        if (datetime.now() - retry_start).seconds >= retry_timeout:
+        if (datetime.now() - retry_start).total_seconds() >= retry_timeout:
             raise TimeoutError(test_cmd)
 
         sleep(retry_period)
