@@ -87,7 +87,6 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
                         svc.metadata.name.startswith('elastic-')].pop()
 
     # TODO make port-forward idempotent
-    subprocess.run('pkill kubectl'.split())
     subprocess.Popen(
         "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
     elastic_proxy_is_running = "nc -z 127.0.0.1 9200"
@@ -126,7 +125,7 @@ def _deploy_echoserver(test_namespace):
     local_proxy = '127.0.0.1'
     local_port = 9001
 
-    subprocess.run("kubectl create -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
+    subprocess.run("kubectl apply -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
                    check=True)
     pod_is_running = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
         test_namespace)
