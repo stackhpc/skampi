@@ -10,70 +10,65 @@ from tests.testsupport.helm import HelmChart, ChartDeployment
 from tests.testsupport.util import check_connection, wait_until, parse_yaml_str
 
 
-@pytest.fixture(scope="module")
-def logging_chart(helm_adaptor):
-    return HelmChart('logging', helm_adaptor)
+@pytest.fixture(scope="class")
+def logging_chart(request, helm_adaptor):
+    request.cls.chart = HelmChart('logging', helm_adaptor)
 
 
 @pytest.mark.no_deploy
-def test_pvc_reclaim_policy_is_set_to_recycle(logging_chart):
-    resources = parse_yaml_str(logging_chart.templates['elastic-pv.yaml'])
+@pytest.mark.usefixtures("logging_chart")
+class TestLoggingChartTemplates:
+    def test_pvc_reclaim_policy_is_set_to_recycle(self):
+        resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
 
-    assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Recycle'
+        assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Recycle'
 
+    def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
+        elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
 
-@pytest.mark.no_deploy
-def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(logging_chart):
-    elastic_svc = parse_yaml_str(logging_chart.templates['elastic.yaml'])[1]
+        expected_portmapping = {
+            "port": 9200,
+            "targetPort": 9200
+        }
 
-    expected_portmapping = {
-        "port": 9200,
-        "targetPort": 9200
-    }
+        assert elastic_svc['spec']['type'] == 'NodePort'
+        assert expected_portmapping in elastic_svc['spec']['ports']
 
-    assert elastic_svc['spec']['type'] == 'NodePort'
-    assert expected_portmapping in elastic_svc['spec']['ports']
+    def test_elastic_curator_set_to_run_once_every_hour(self):
+        curator_job = parse_yaml_str(self.chart.templates['elastic_curator.yaml']).pop()
 
+        assert curator_job['spec']['schedule'] == '0 1 * * *'
 
-@pytest.mark.no_deploy
-def test_elastic_curator_set_to_run_once_every_hour(logging_chart):
-    curator_job = parse_yaml_str(logging_chart.templates['elastic_curator.yaml']).pop()
+    def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(self):
+        serviceaccount, clusterrole, clusterrolebinding = parse_yaml_str(
+            self.chart.templates['fluentd-rbac.yaml'])
+        daemonset = parse_yaml_str(self.chart.templates['fluentd-daemonset.yaml']).pop()
+        serviceaccount_name = serviceaccount['metadata']['name']
 
-    assert curator_job['spec']['schedule'] == '0 1 * * *'
+        expected_auth_rule = {
+            "apiGroups": [""],
+            "resources": ["pods", "namespaces"],
+            "verbs": ["get", "list", "watch"]
+        }
 
+        assert expected_auth_rule in clusterrole['rules']
+        assert serviceaccount_name in [s['name'] for s in clusterrolebinding['subjects']]
+        assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
 
-@pytest.mark.no_deploy
-def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(logging_chart):
-    serviceaccount, clusterrole, clusterrolebinding = parse_yaml_str(logging_chart.templates['fluentd-rbac.yaml'])
-    daemonset = parse_yaml_str(logging_chart.templates['fluentd-daemonset.yaml']).pop()
-    serviceaccount_name = serviceaccount['metadata']['name']
+    def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(self):
+        elastic_deployment, elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])
+        fluentd_daemonset = parse_yaml_str(self.chart.templates['fluentd-daemonset.yaml']).pop()
 
-    expected_auth_rule = {
-        "apiGroups": [""],
-        "resources": ["pods", "namespaces"],
-        "verbs": ["get", "list", "watch"]
-    }
+        expected_env_vars = [
+            {"FLUENT_ELASTICSEARCH_HOST": elastic_deployment['metadata']['name']},
+            {"FLUENT_ELASTICSEARCH_PORT": str(elastic_svc['spec']['ports'].pop()['port'])},
+        ]
 
-    assert expected_auth_rule in clusterrole['rules']
-    assert serviceaccount_name in [s['name'] for s in clusterrolebinding['subjects']]
-    assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
+        fluentd_container = fluentd_daemonset['spec']['template']['spec']['containers'][0]
+        env_vars = [{v['name']: v['value']} for v in fluentd_container['env']]
 
-
-@pytest.mark.no_deploy
-def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(logging_chart):
-    elastic_deployment, elastic_svc = parse_yaml_str(logging_chart.templates['elastic.yaml'])
-    fluentd_daemonset = parse_yaml_str(logging_chart.templates['fluentd-daemonset.yaml']).pop()
-
-    expected_env_vars = [
-        {"FLUENT_ELASTICSEARCH_HOST": elastic_deployment['metadata']['name']},
-        {"FLUENT_ELASTICSEARCH_PORT": str(elastic_svc['spec']['ports'].pop()['port'])},
-    ]
-
-    fluentd_container = fluentd_daemonset['spec']['template']['spec']['containers'][0]
-    env_vars = [{v['name']: v['value']} for v in fluentd_container['env']]
-
-    for env_var in expected_env_vars:
-        assert env_var in env_vars
+        for env_var in expected_env_vars:
+            assert env_var in env_vars
 
 
 @pytest.fixture(scope="module")
@@ -90,6 +85,7 @@ def echoserver(test_namespace):
     echoserver.delete()
 
 
+@pytest.mark.chart_deploy
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
     # arrange:
     _proxy_elastic_service(_get_elastic_svc_name(logging_chart_deployment), test_namespace)
