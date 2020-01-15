@@ -11,7 +11,7 @@ stages:
   - debug
 
 .pip_install_test_requirements: &pip_install_test_requirements |-
-  pip install -r test-requirements.txt
+  pip3 install -r test-requirements.txt
 
 helm-lint:
   stage: static_analysis
