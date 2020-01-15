@@ -89,13 +89,17 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     # TODO make port-forward idempotent
     subprocess.Popen(
         "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
-    elastic_proxy_is_running = "nc -z 127.0.0.1 9200"
-    wait_until(elastic_proxy_is_running)
+
+    def elastic_proxy_is_ready():
+        cmd = "nc -z 127.0.0.1 9200"
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    wait_until(elastic_proxy_is_ready)
 
     # act:
     expected_log = "simple were so well compounded"
     _print_to_stdout_in_cluster(expected_log)
-    sleep(35)  # allow log to propagate
+    sleep(40)  # allow log to propagate TODO: remove need for sleep()
 
     # assert:
     from elasticsearch import Elasticsearch
@@ -127,27 +131,33 @@ def _deploy_echoserver(test_namespace):
 
     subprocess.run("kubectl apply -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
                    check=True)
-    pod_is_running = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
-        test_namespace)
-    wait_until(pod_is_running)
+
+    def echoserver_is_running():
+        cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
+            test_namespace)
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    wait_until(echoserver_is_running)
 
     subprocess.Popen("kubectl port-forward -n {} pod/echoserver 9001:9001".format(test_namespace).split())
-    proxy_is_running = "nc -z {} {}".format(local_proxy, local_port)
-    wait_until(proxy_is_running)
+
+    def echoserver_proxy_is_ready():
+        cmd = "nc -z {} {}".format(local_proxy, local_port)
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    wait_until(echoserver_proxy_is_ready)
 
 
 def wait_until(test_cmd, retry_period=3, retry_timeout=30):
+    assert callable(test_cmd)
     retry_start = datetime.now()
     while True:
-        pod_status = subprocess.run(
-            test_cmd,
-            shell=True, encoding='utf8', stdout=subprocess.PIPE)
-        sleep(retry_period)
-        if (pod_status.returncode == 0):
+        if test_cmd():
             break
-
         if (datetime.now() - retry_start).seconds >= retry_timeout:
             raise TimeoutError(test_cmd)
+
+        sleep(retry_period)
 
 
 def parse_yaml_str(pv_resource_def):
