@@ -94,6 +94,12 @@ class ChartDeployment(object):
         return api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
                                                 field_selector="metadata.name={}".format(pod_name)).items
 
+    def is_running(self, pod_name):
+        pod_list = self.get_pods(pod_name)
+        assert len(pod_list) == 1
+        tangodb_pod = pod_list.pop()
+        return tangodb_pod.status.phase == 'Running'
+
     def get_services(self):
         api_instance = self._k8s_api.CoreV1Api()
         return [svc for svc in api_instance.list_namespaced_service(self._helm_adaptor.namespace).items if
