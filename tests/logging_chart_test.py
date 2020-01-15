@@ -1,3 +1,4 @@
+import socket
 import subprocess
 from datetime import datetime
 from io import StringIO
@@ -91,8 +92,7 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
         "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
 
     def elastic_proxy_is_ready():
-        cmd = "nc -z 127.0.0.1 9200"
-        return subprocess.run(cmd, shell=True).returncode == 0
+        return check_connection('127.0.0.1', 9200)
 
     wait_until(elastic_proxy_is_ready)
 
@@ -126,9 +126,6 @@ def _print_to_stdout_in_cluster(expected_log):
 
 
 def _deploy_echoserver(test_namespace):
-    local_proxy = '127.0.0.1'
-    local_port = 9001
-
     subprocess.run("kubectl apply -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
                    check=True)
 
@@ -142,10 +139,16 @@ def _deploy_echoserver(test_namespace):
     subprocess.Popen("kubectl port-forward -n {} pod/echoserver 9001:9001".format(test_namespace).split())
 
     def echoserver_proxy_is_ready():
-        cmd = "nc -z {} {}".format(local_proxy, local_port)
-        return subprocess.run(cmd, shell=True).returncode == 0
+        return check_connection('127.0.0.1', 9001)
 
     wait_until(echoserver_proxy_is_ready)
+
+
+def check_connection(host, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = s.connect_ex((host, port))
+    s.close()
+    return result == 0
 
 
 def wait_until(test_cmd, retry_period=3, retry_timeout=30):
