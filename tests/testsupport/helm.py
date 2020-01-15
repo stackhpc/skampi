@@ -77,6 +77,11 @@ class ChartDeployment(object):
 
         return pod_list
 
+    def get_services(self):
+        api_instance = self._k8s_api.CoreV1Api()
+        return [svc for svc in api_instance.list_namespaced_service(self._helm_adaptor.namespace).items if
+                svc.metadata.name.endswith(self.release_name)]
+
     @staticmethod
     def _parse_release_name_from(stdout):
         release_name_line = ''.join(l for l in stdout.split('\n') if l.startswith('NAME:'))

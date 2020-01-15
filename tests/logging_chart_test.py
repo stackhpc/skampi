@@ -1,4 +1,3 @@
-import logging
 import socket
 import subprocess
 from datetime import datetime
@@ -78,24 +77,19 @@ def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(
         assert env_var in env_vars
 
 
-@pytest.mark.chart_deploy
-def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, helm_adaptor, k8s_api, test_namespace):
-    # arrange:
+@pytest.fixture(scope="module")
+def logging_chart_deployment(helm_adaptor, k8s_api):
     chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
+    yield chart_deployment
+    chart_deployment.delete()
+
+
+@pytest.mark.chart_deploy
+def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, test_namespace):
+    # arrange:
     _deploy_echoserver(test_namespace)
-
-    api_instance = k8s_api.CoreV1Api()
-    elastic_svc_name = [svc.metadata.name for svc in api_instance.list_namespaced_service(test_namespace).items if
-                        svc.metadata.name.startswith('elastic-')].pop()
-
-    # TODO make port-forward idempotent
-    subprocess.Popen(
-        "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
-
-    def elastic_proxy_is_ready():
-        return check_connection('127.0.0.1', 9200)
-
-    wait_until(elastic_proxy_is_ready)
+    _proxy_echoserver(test_namespace)
+    _proxy_elastic_service(_get_elastic_svc_name(logging_chart_deployment), test_namespace)
 
     # act:
     start = datetime.now()
@@ -103,15 +97,15 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     _print_to_stdout_in_cluster(expected_log)
 
     def fluentd_ingests_echoserver_logs():
-        fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(chart_deployment.release_name)
+        fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
         seconds_since_start = (datetime.now() - start).total_seconds()
         cmd = "kubectl logs {} -n {} --all-containers --since={}s | grep -q echoserver".format(fluentd_daemonset_name,
                                                                                                test_namespace,
                                                                                                seconds_since_start)
         return subprocess.run(cmd, shell=True).returncode == 0
 
-    wait_until(fluentd_ingests_echoserver_logs)
-    sleep(3)
+    wait_until(fluentd_ingests_echoserver_logs, retry_timeout=60)
+    sleep(5)
 
     # assert:
     from elasticsearch import Elasticsearch
@@ -133,27 +127,48 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart, 
     assert len(result['hits']['hits']) > 0
 
 
+def _proxy_elastic_service(elastic_svc_name, test_namespace):
+    # TODO make port-forward idempotent
+    subprocess.Popen(
+        "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
+
+    def elastic_proxy_is_ready():
+        return check_connection('127.0.0.1', 9200)
+
+    wait_until(elastic_proxy_is_ready)
+
+
+def _get_elastic_svc_name(logging_chart_deployment):
+    elastic_svc_name = [svc.metadata.name for svc in logging_chart_deployment.get_services() if
+                        svc.metadata.name.startswith('elastic-')].pop()
+    return elastic_svc_name
+
+
 def _print_to_stdout_in_cluster(expected_log):
     requests.post("http://127.0.0.1:9001/echo", expected_log)
 
 
-def _deploy_echoserver(test_namespace):
+def _deploy_echoserver(test_namespace, wait=True):
     subprocess.run("kubectl apply -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
                    check=True)
 
-    def echoserver_is_running():
-        cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
-            test_namespace)
-        return subprocess.run(cmd, shell=True).returncode == 0
+    if wait:
+        def echoserver_is_running():
+            cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
+                test_namespace)
+            return subprocess.run(cmd, shell=True).returncode == 0
 
-    wait_until(echoserver_is_running)
+        wait_until(echoserver_is_running)
 
+
+def _proxy_echoserver(test_namespace, wait=True):
     subprocess.Popen("kubectl port-forward -n {} pod/echoserver 9001:9001".format(test_namespace).split())
 
-    def echoserver_proxy_is_ready():
-        return check_connection('127.0.0.1', 9001)
+    if wait:
+        def echoserver_proxy_is_ready():
+            return check_connection('127.0.0.1', 9001)
 
-    wait_until(echoserver_proxy_is_ready)
+        wait_until(echoserver_proxy_is_ready)
 
 
 def check_connection(host, port):
