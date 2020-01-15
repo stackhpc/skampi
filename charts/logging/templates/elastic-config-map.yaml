@@ -51,7 +51,7 @@ data:
         "index": {
           "lifecycle": {
             "name": "ska_ilm_policy",
-            "rollover_alias": "ska_ilm_rollover"
+            "rollover_alias": "log*"
           },
           "number_of_shards": "1",
           "number_of_replicas": "1",

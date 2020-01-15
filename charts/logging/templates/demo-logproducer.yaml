@@ -1,3 +1,5 @@
+{{ if .Values.demo_mode.enabled }}
+
 apiVersion: v1
 kind: Pod
 metadata:
@@ -12,3 +14,5 @@ spec:
      - "-c"
      - |
         while true; do echo "1|$(date "+%Y-%m-%dT%T.%6NZ")|DEBUG||demo.stdout.logproducer|logproducer.py#1|tango-device:my/dev/name|A log line from stdout." | tee /dev/stderr; sleep 1; done
+
+{{ end }}
