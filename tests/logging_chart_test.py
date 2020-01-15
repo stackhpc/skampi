@@ -7,6 +7,7 @@ from time import sleep
 import pytest
 import requests
 import yaml
+from elasticsearch import Elasticsearch
 
 from tests.testsupport.helm import HelmChart, ChartDeployment
 
@@ -84,46 +85,26 @@ def logging_chart_deployment(helm_adaptor, k8s_api):
     chart_deployment.delete()
 
 
-@pytest.mark.chart_deploy
-def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, test_namespace):
+@pytest.fixture(scope="module")
+def echoserver(test_namespace):
+    echoserver = EchoServer(test_namespace)
+    yield echoserver
+    echoserver.delete()
+
+
+def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
     # arrange:
-    _deploy_echoserver(test_namespace)
-    _proxy_echoserver(test_namespace)
     _proxy_elastic_service(_get_elastic_svc_name(logging_chart_deployment), test_namespace)
 
     # act:
-    start = datetime.now()
     expected_log = "simple were so well compounded"
-    _print_to_stdout_in_cluster(expected_log)
-
-    def fluentd_ingests_echoserver_logs():
-        fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
-        seconds_since_start = (datetime.now() - start).total_seconds()
-        cmd = "kubectl logs {} -n {} --all-containers --since={}s | grep -q echoserver".format(fluentd_daemonset_name,
-                                                                                               test_namespace,
-                                                                                               seconds_since_start)
-        return subprocess.run(cmd, shell=True).returncode == 0
-
-    wait_until(fluentd_ingests_echoserver_logs, retry_timeout=60)
-    sleep(5)
+    echoserver.print_to_stdout(expected_log)
+    fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
+    _wait_until_fluentd_ingests_echoserver_logs(
+        fluentd_daemonset_name, datetime.now(), test_namespace)
 
     # assert:
-    from elasticsearch import Elasticsearch
-    es = Elasticsearch(['127.0.0.1:9200'], use_ssl=False, verify_certs=False, ssl_show_warn=False)
-
-    query_body = {
-        "query": {
-            "match": {
-                "log": expected_log
-            }
-        }
-    }
-
-    result = es.search(
-        index="logstash-*",
-        body=query_body
-    )
-
+    result = _query_elasticsearch_for_log(expected_log)
     assert len(result['hits']['hits']) > 0
 
 
@@ -139,36 +120,38 @@ def _proxy_elastic_service(elastic_svc_name, test_namespace):
 
 
 def _get_elastic_svc_name(logging_chart_deployment):
+    # TODO resolve this name statically from HelmChart() instance
     elastic_svc_name = [svc.metadata.name for svc in logging_chart_deployment.get_services() if
                         svc.metadata.name.startswith('elastic-')].pop()
     return elastic_svc_name
 
 
-def _print_to_stdout_in_cluster(expected_log):
-    requests.post("http://127.0.0.1:9001/echo", expected_log)
+def _wait_until_fluentd_ingests_echoserver_logs(fluentd_daemonset_name, start_timestamp, namespace):
+    def fluentd_ingests_echoserver_logs():
+        seconds_since_start = (datetime.now() - start_timestamp).total_seconds()
+        cmd = "kubectl logs {} -n {} --all-containers --since={}s | grep -q echoserver".format(fluentd_daemonset_name,
+                                                                                               namespace,
+                                                                                               int(seconds_since_start))
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    wait_until(fluentd_ingests_echoserver_logs, retry_timeout=60)
+    sleep(5)
 
 
-def _deploy_echoserver(test_namespace, wait=True):
-    subprocess.run("kubectl apply -n {} -f tests/testsupport/extras/echoserver.yaml".format(test_namespace).split(),
-                   check=True)
-
-    if wait:
-        def echoserver_is_running():
-            cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
-                test_namespace)
-            return subprocess.run(cmd, shell=True).returncode == 0
-
-        wait_until(echoserver_is_running)
-
-
-def _proxy_echoserver(test_namespace, wait=True):
-    subprocess.Popen("kubectl port-forward -n {} pod/echoserver 9001:9001".format(test_namespace).split())
-
-    if wait:
-        def echoserver_proxy_is_ready():
-            return check_connection('127.0.0.1', 9001)
-
-        wait_until(echoserver_proxy_is_ready)
+def _query_elasticsearch_for_log(log_msg):
+    es = Elasticsearch(['127.0.0.1:9200'], use_ssl=False, verify_certs=False, ssl_show_warn=False)
+    query_body = {
+        "query": {
+            "match": {
+                "log": log_msg
+            }
+        }
+    }
+    result = es.search(
+        index="logstash-*",
+        body=query_body
+    )
+    return result
 
 
 def check_connection(host, port):
@@ -184,7 +167,7 @@ def wait_until(test_cmd, retry_period=3, retry_timeout=30):
     while True:
         if test_cmd():
             break
-        if (datetime.now() - retry_start).total_seconds() >= retry_timeout:
+        if int((datetime.now() - retry_start).total_seconds()) >= retry_timeout:
             raise TimeoutError(test_cmd)
 
         sleep(retry_period)
@@ -192,3 +175,47 @@ def wait_until(test_cmd, retry_period=3, retry_timeout=30):
 
 def parse_yaml_str(pv_resource_def):
     return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
+
+
+class EchoServer(object):
+    DEFINITION_FILE = 'tests/testsupport/extras/echoserver.yaml'
+    LISTEN_PORT = 9001
+
+    def __init__(self, namespace):
+        with open(self.DEFINITION_FILE, 'r') as f:
+            self.definition = parse_yaml_str(f.read())
+        self.namespace = namespace
+
+        self._deploy()
+        self._proxy()
+
+    def _deploy(self, wait=True):
+        subprocess.run("kubectl apply -n {} -f {}".format(self.namespace, self.DEFINITION_FILE).split(),
+                       check=True)
+        if wait:
+            wait_until(self.is_running)
+
+    def _proxy(self, wait=True):
+        subprocess.Popen(
+            "kubectl port-forward -n {0} pod/echoserver {1}:{1}".format(self.namespace, self.LISTEN_PORT).split())
+
+        if wait:
+            wait_until(self.is_proxied_locally)
+
+    def print_to_stdout(self, line):
+        requests.post("http://127.0.0.1:{}/echo".format(self.LISTEN_PORT), line)
+
+    def delete(self):
+        for resource in self.definition:
+            subprocess.run(
+                "kubectl delete {} {} -n {} --force --grace-period=0".format(resource['kind'],
+                                                                             resource['metadata']['name'],
+                                                                             self.namespace).split(), check=True)
+
+    def is_running(self):
+        cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
+            self.namespace)
+        return subprocess.run(cmd, shell=True).returncode == 0
+
+    def is_proxied_locally(self):
+        return check_connection('127.0.0.1', self.LISTEN_PORT)
