@@ -85,11 +85,22 @@ def echoserver(test_namespace):
     echoserver.delete()
 
 
+@pytest.fixture(scope="module", autouse=True)
+def elastic_svc_proxy(logging_chart_deployment, test_namespace):
+    elastic_svc_name = _get_elastic_svc_name(logging_chart_deployment)
+    proxy_proc = subprocess.Popen(
+        "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
+
+    def elastic_proxy_is_ready():
+        return check_connection('127.0.0.1', 9200)
+
+    wait_until(elastic_proxy_is_ready)
+    yield
+    proxy_proc.kill()
+
+
 @pytest.mark.chart_deploy
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
-    # arrange:
-    _proxy_elastic_service(_get_elastic_svc_name(logging_chart_deployment), test_namespace)
-
     # act:
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
@@ -102,19 +113,7 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
     assert len(result['hits']['hits']) > 0
 
 
-def _proxy_elastic_service(elastic_svc_name, test_namespace):
-    # TODO make port-forward idempotent
-    subprocess.Popen(
-        "kubectl port-forward -n {} svc/{} 9200:9200".format(test_namespace, elastic_svc_name).split())
-
-    def elastic_proxy_is_ready():
-        return check_connection('127.0.0.1', 9200)
-
-    wait_until(elastic_proxy_is_ready)
-
-
 def _get_elastic_svc_name(logging_chart_deployment):
-    # TODO resolve this name statically from HelmChart() instance
     elastic_svc_name = [svc.metadata.name for svc in logging_chart_deployment.get_services() if
                         svc.metadata.name.startswith('elastic-')].pop()
     return elastic_svc_name

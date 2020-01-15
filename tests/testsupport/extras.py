@@ -24,7 +24,7 @@ class EchoServer(object):
             wait_until(self.is_running)
 
     def _proxy(self, wait=True):
-        subprocess.Popen(
+        self._proxy_proc = subprocess.Popen(
             "kubectl port-forward -n {0} pod/echoserver {1}:{1}".format(self.namespace, self.LISTEN_PORT).split())
 
         if wait:
@@ -34,6 +34,7 @@ class EchoServer(object):
         requests.post("http://127.0.0.1:{}/echo".format(self.LISTEN_PORT), line)
 
     def delete(self):
+        self._proxy_proc.kill()
         for resource in self.definition:
             subprocess.run(
                 "kubectl delete {} {} -n {} --force --grace-period=0".format(resource['kind'],
