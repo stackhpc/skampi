@@ -49,6 +49,7 @@ helm-template-pytest:
     name: template-pytest-reports
     paths:
     - junit-report.xml
+    - pytest-logs.txt
     reports:
       junit: junit-report.xml
 
@@ -81,6 +82,7 @@ chart-pytest:
     name: chart-pytest-reports
     paths:
     - junit-report.xml
+    - pytest-logs.txt
     reports:
       junit: junit-report.xml
 
