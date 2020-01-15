@@ -1,15 +1,13 @@
-import socket
 import subprocess
 from datetime import datetime
-from io import StringIO
 from time import sleep
 
 import pytest
-import requests
-import yaml
 from elasticsearch import Elasticsearch
 
+from tests.testsupport.extras import EchoServer
 from tests.testsupport.helm import HelmChart, ChartDeployment
+from tests.testsupport.util import check_connection, wait_until, parse_yaml_str
 
 
 @pytest.fixture(scope="module")
@@ -152,70 +150,3 @@ def _query_elasticsearch_for_log(log_msg):
         body=query_body
     )
     return result
-
-
-def check_connection(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = s.connect_ex((host, port))
-    s.close()
-    return result == 0
-
-
-def wait_until(test_cmd, retry_period=3, retry_timeout=30):
-    assert callable(test_cmd)
-    retry_start = datetime.now()
-    while True:
-        if test_cmd():
-            break
-        if int((datetime.now() - retry_start).total_seconds()) >= retry_timeout:
-            raise TimeoutError(test_cmd)
-
-        sleep(retry_period)
-
-
-def parse_yaml_str(pv_resource_def):
-    return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
-
-
-class EchoServer(object):
-    DEFINITION_FILE = 'tests/testsupport/extras/echoserver.yaml'
-    LISTEN_PORT = 9001
-
-    def __init__(self, namespace):
-        with open(self.DEFINITION_FILE, 'r') as f:
-            self.definition = parse_yaml_str(f.read())
-        self.namespace = namespace
-
-        self._deploy()
-        self._proxy()
-
-    def _deploy(self, wait=True):
-        subprocess.run("kubectl apply -n {} -f {}".format(self.namespace, self.DEFINITION_FILE).split(),
-                       check=True)
-        if wait:
-            wait_until(self.is_running)
-
-    def _proxy(self, wait=True):
-        subprocess.Popen(
-            "kubectl port-forward -n {0} pod/echoserver {1}:{1}".format(self.namespace, self.LISTEN_PORT).split())
-
-        if wait:
-            wait_until(self.is_proxied_locally)
-
-    def print_to_stdout(self, line):
-        requests.post("http://127.0.0.1:{}/echo".format(self.LISTEN_PORT), line)
-
-    def delete(self):
-        for resource in self.definition:
-            subprocess.run(
-                "kubectl delete {} {} -n {} --force --grace-period=0".format(resource['kind'],
-                                                                             resource['metadata']['name'],
-                                                                             self.namespace).split(), check=True)
-
-    def is_running(self):
-        cmd = "kubectl describe pod echoserver -n {} | grep -q 'Status:.*Running'".format(
-            self.namespace)
-        return subprocess.run(cmd, shell=True).returncode == 0
-
-    def is_proxied_locally(self):
-        return check_connection('127.0.0.1', self.LISTEN_PORT)
