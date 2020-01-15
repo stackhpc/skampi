@@ -33,13 +33,11 @@ def infratests_context(pytestconfig, test_namespace):
     no_deployment_tests_included, use_tiller_plugin = _are_deployment_tests_included(pytestconfig)
 
     if no_deployment_tests_included:
-        obj_to_yield = InfraTestContext(HelmTestAdaptor(use_tiller_plugin, test_namespace))
+        yield InfraTestContext(HelmTestAdaptor(use_tiller_plugin, test_namespace))
     else:
         _create_test_namespace_if_needed(test_namespace)
-        obj_to_yield = _build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin)
-
-    yield obj_to_yield
-    _delete_namespace(test_namespace)
+        yield (_build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin))
+        _delete_namespace(test_namespace)
 
 
 @pytest.fixture(scope="session")
