@@ -63,19 +63,36 @@ class ChartDeployment(object):
         assert self.release_name is not None
         self._helm_adaptor.delete(self.release_name)
 
-    def get_pods(self):
+    def get_pods(self, pod_name=None):
         api_instance = self._k8s_api.CoreV1Api()
-        pod_list = api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
-                                                    label_selector="release={}".format(self.release_name)).items
+
+        if pod_name:
+            return self._get_pods_by_pod_name(api_instance, pod_name)
+
+        pod_list = self._get_pods_by_release_name_in_label(api_instance)
+        no_pods_with_release_label = len(pod_list) == 0
 
         # TODO enforce a mininum standard set of metadata labels
         # e.g.  https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels
-        if len(pod_list) == 0:
-            all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
-            pod_list = [pod for pod in all_namespaced_pods if
-                        pod.metadata.name.index(self.release_name) > -1]
+        if no_pods_with_release_label:
+            pod_list = self._get_pods_by_release_name_in_pod_name(api_instance, pod_list)
 
         return pod_list
+
+    def _get_pods_by_release_name_in_pod_name(self, api_instance, pod_list):
+        all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
+        pod_list = [pod for pod in all_namespaced_pods if
+                    pod.metadata.name.index(self.release_name) > -1]
+        return pod_list
+
+    def _get_pods_by_release_name_in_label(self, api_instance):
+        pod_list = api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
+                                                    label_selector="release={}".format(self.release_name)).items
+        return pod_list
+
+    def _get_pods_by_pod_name(self, api_instance, pod_name):
+        return api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
+                                                field_selector="metadata.name={}".format(pod_name)).items
 
     def get_services(self):
         api_instance = self._k8s_api.CoreV1Api()
