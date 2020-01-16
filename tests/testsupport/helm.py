@@ -97,8 +97,8 @@ class ChartDeployment(object):
     def is_running(self, pod_name):
         pod_list = self.get_pods(pod_name)
         assert len(pod_list) == 1
-        tangodb_pod = pod_list.pop()
-        return tangodb_pod.status.phase == 'Running'
+        pod = pod_list.pop()
+        return pod.status.phase == 'Running'
 
     def get_services(self):
         api_instance = self._k8s_api.CoreV1Api()
