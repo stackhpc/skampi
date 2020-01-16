@@ -137,6 +137,6 @@ class HelmChart(object):
     @staticmethod
     def generate_release_name():
         def random_alpha(length=7):
-            return ''.join([random.choice(list(string.ascii_lowercase)) for _ in range(length)])
+            return ''.join(random.choices(string.ascii_lowercase, k=length))
 
         return "{}-{}".format(random_alpha(), random_alpha())
