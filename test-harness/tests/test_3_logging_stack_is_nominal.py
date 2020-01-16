@@ -29,6 +29,7 @@ def requests_retry_session(retries=3,
     session.mount('https://', adapter)
     return session
 
+
 def test_kibana_should_be_accessible_via_ingress(run_context):
     HOSTNAME = "kibana-logging-{}-{}".format(run_context.KUBE_NAMESPACE,
                                              run_context.HELM_RELEASE)
@@ -38,6 +39,7 @@ def test_kibana_should_be_accessible_via_ingress(run_context):
     res = requests_retry_session().get(url)
 
     assert res.status_code == 200
+
 
 def test_log_parsing_into_elasticsearch(run_context):
     """Test that the pipeline is added and parses as expected
@@ -68,6 +70,7 @@ def test_log_parsing_into_elasticsearch(run_context):
     assert source['ska_log_message'] == "A log line from stdout."
     assert source['ska_thread_id'] == "thread_id_123"
 
+
 def test_ska_logs_into_elasticsearch(run_context):
     """Check that we can search on a SKA parsed field"""
     NAMESPACE = run_context.KUBE_NAMESPACE
@@ -88,23 +91,23 @@ def test_ska_logs_into_elasticsearch(run_context):
                   "demo.stdout.logproducer|logproducer.py#1|tango-device:my/dev/name|")
     log_message = "A log line from stdout created at {}".format(time_stamp)
 
-    doc = {"log":log_string + log_message, "kubernetes_namespace":run_context.KUBE_NAMESPACE,
-           "@timestamp":time_stamp.isoformat()}
+    doc = {"log": log_string + log_message,
+           "kubernetes_namespace": run_context.KUBE_NAMESPACE,
+           "@timestamp": time_stamp.isoformat()}
 
     indexes = es.indices.get("log*")
     last_index = sorted(indexes,
                         key=lambda i: indexes[i]['settings']['index']['creation_date'],
                         reverse=True)[0]
 
-
     es.index(index=last_index, body=doc)
 
     search_ska_log_message = {
         "query": {
-            "match" : {
-                "ska_log_message" : {
-                    "query" : log_message,
-                    "operator" : "and"
+            "match": {
+                "ska_log_message": {
+                    "query": log_message,
+                    "operator": "and"
                 }
             }
         }
