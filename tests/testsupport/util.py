@@ -13,16 +13,18 @@ def check_connection(host, port):
     return result == 0
 
 
-def wait_until(test_cmd, retry_period=3, retry_timeout=30):
+def wait_until(test_cmd, backoff_rate=2.0, retry_timeout=60):
     assert callable(test_cmd)
     retry_start = datetime.now()
+    retry_delay = 1
     while True:
         if test_cmd():
             break
         if int((datetime.now() - retry_start).total_seconds()) >= retry_timeout:
             raise TimeoutError(test_cmd)
 
-        sleep(retry_period)
+        retry_delay *= backoff_rate
+        sleep(retry_delay)
 
 
 def parse_yaml_str(pv_resource_def):
