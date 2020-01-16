@@ -56,7 +56,7 @@ class TestLoggingChartTemplates:
         assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
 
     def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(self):
-        elastic_deployment, elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])
+        elastic_deployment, elastic_svc, _ = parse_yaml_str(self.chart.templates['elastic.yaml'])
         fluentd_daemonset = parse_yaml_str(self.chart.templates['fluentd-daemonset.yaml']).pop()
 
         expected_env_vars = [
