@@ -43,6 +43,12 @@ spec:
         - name: varlogpods
           mountPath: /var/log/pods
           readOnly: true
+        - name: varlogcontainers
+          mountPath: /var/log/containers
+          readOnly: true
+        - name: varlogdocker
+          mountPath: /var/log/docker
+          readOnly: true
         - name: journal
           mountPath: /var/log/journal
           readOnly: true
@@ -87,6 +93,12 @@ spec:
       - name: varlogpods
         hostPath:
           path: /var/log/pods
+      - name: varlogcontainers
+        hostPath:
+          path: /var/log/containers
+      - name: varlogdocker
+        hostPath:
+          path: /var/log/docker
       # In some k8s deployments the log files end up in /mnt/data/docker/containers
       - name: mnt-data-logs
         hostPath:
