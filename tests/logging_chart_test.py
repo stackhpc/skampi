@@ -85,7 +85,7 @@ def echoserver(test_namespace):
     echoserver.delete()
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def elastic_svc_proxy(logging_chart_deployment, test_namespace):
     elastic_svc_name = _get_elastic_svc_name(logging_chart_deployment)
     proxy_proc = subprocess.Popen(
@@ -100,6 +100,7 @@ def elastic_svc_proxy(logging_chart_deployment, test_namespace):
 
 
 @pytest.mark.chart_deploy
+@pytest.mark.usefixtures("elastic_svc_proxy")
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
     # act:
     expected_log = "simple were so well compounded"
