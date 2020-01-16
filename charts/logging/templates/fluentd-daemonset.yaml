@@ -94,7 +94,7 @@ spec:
           path: /var/log/journal
       - name: fluentd-config-namepace
         configMap:
-          name: fluentd-configmap-namespace-{{ template "logging.name" . }}-{{ .Release.Name }}
+          name: fluentd-configmap-k8s-{{ template "logging.name" . }}-{{ .Release.Name }}
       - name: fluentd-config-fluent
         configMap:
           name: fluentd-configmap-fluent-{{ template "logging.name" . }}-{{ .Release.Name }}

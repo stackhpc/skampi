@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: fluentd-configmap-namespace-{{ template "logging.name" . }}-{{ .Release.Name }}
+  name: fluentd-configmap-k8s-{{ template "logging.name" . }}-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 data:
   ska.conf: |
