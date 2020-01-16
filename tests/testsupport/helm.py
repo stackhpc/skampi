@@ -132,7 +132,7 @@ class HelmChart(object):
         return self._rendered_templates
 
     def render_template(self, template_file, release_name):
-        return self._helm_adaptor.template(self.name, release_name, os.path(self.templates_dir, template_file))
+        return self._helm_adaptor.template(self.name, release_name, os.path.join(self.templates_dir, template_file))
 
     @staticmethod
     def generate_release_name():

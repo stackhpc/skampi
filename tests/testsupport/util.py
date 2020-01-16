@@ -27,5 +27,5 @@ def wait_until(test_cmd, backoff_rate=1.5, retry_timeout=60):
         sleep(retry_delay)
 
 
-def parse_yaml_str(pv_resource_def):
-    return [t for t in yaml.safe_load_all(StringIO(pv_resource_def)) if t is not None]
+def parse_yaml_str(yaml_str):
+    return [t for t in yaml.safe_load_all(StringIO(yaml_str)) if t is not None]
