@@ -128,7 +128,7 @@ def _wait_until_fluentd_ingests_echoserver_logs(fluentd_daemonset_name, start_ti
                                                                                                int(seconds_since_start))
         return subprocess.run(cmd, shell=True).returncode == 0
 
-    wait_until(fluentd_ingests_echoserver_logs)
+    wait_until(fluentd_ingests_echoserver_logs, retry_timeout=120)
     sleep(5)
 
 
