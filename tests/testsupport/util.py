@@ -13,7 +13,7 @@ def check_connection(host, port):
     return result == 0
 
 
-def wait_until(test_cmd, backoff_rate=2.0, retry_timeout=60):
+def wait_until(test_cmd, backoff_rate=1.5, retry_timeout=60):
     assert callable(test_cmd)
     retry_start = datetime.now()
     retry_delay = 1
