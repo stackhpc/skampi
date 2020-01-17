@@ -1,6 +1,6 @@
 .PHONY: template_tests
 
-TEST_NAMESPACE?=
+TEST_NAMESPACE?=unspecified
 PYTEST_ARGS?=$(if $(CI),--test-namespace=$(TEST_NAMESPACE),--use-tiller-plugin)
 
 template_tests:
