@@ -46,6 +46,7 @@ helm-template-pytest:
   - *pip_install_test_requirements
   - make template_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
   artifacts:
+    when: always
     name: template-pytest-reports
     paths:
     - junit-report.xml
@@ -79,6 +80,7 @@ chart-pytest:
   environment:
     name: test
   artifacts:
+    when: always
     name: chart-pytest-reports
     paths:
     - junit-report.xml
