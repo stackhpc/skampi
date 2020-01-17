@@ -22,7 +22,7 @@ class TestLoggingChartTemplates:
     def test_pvc_reclaim_policy_is_set_to_recycle(self):
         resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
 
-        assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Recycle'
+        assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
 
     def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
         elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
