@@ -29,14 +29,19 @@ def test_namespace(pytestconfig):
 @pytest.fixture(scope="session")
 def infratests_context(pytestconfig, test_namespace):
     InfraTestContext = namedtuple('InfraTestContext', ['helm_adaptor'])
-    obj_to_yield = None
-    no_deployment_tests_included, use_tiller_plugin = _are_deployment_tests_included(pytestconfig)
+    use_tiller_plugin = pytestconfig.getoption("--use-tiller-plugin")
+    deployment_tests_are_included = _are_deployment_tests_included(pytestconfig)
+    delete_namespace_afterward = False
 
-    if no_deployment_tests_included:
-        yield InfraTestContext(HelmTestAdaptor(use_tiller_plugin, test_namespace))
-    else:
+    if deployment_tests_are_included:
         _create_test_namespace_if_needed(test_namespace)
-        yield (_build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin))
+        obj_to_yield = (_build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin))
+        delete_namespace_afterward = True
+    else:
+        obj_to_yield = InfraTestContext(HelmTestAdaptor(use_tiller_plugin, test_namespace))
+
+    yield obj_to_yield
+    if delete_namespace_afterward:
         _delete_namespace(test_namespace)
 
 
@@ -52,10 +57,8 @@ def k8s_api():
 
 
 def _are_deployment_tests_included(pytestconfig):
-    use_tiller_plugin = pytestconfig.getoption("--use-tiller-plugin")
     markers = pytestconfig.getoption("-m")
-    no_deployment_tests_included = len(markers) != 0 and "chart_deploy" not in markers
-    return no_deployment_tests_included, use_tiller_plugin
+    return len(markers) == 0 or "chart_deploy" in markers
 
 
 def _create_test_namespace_if_needed(test_namespace):
