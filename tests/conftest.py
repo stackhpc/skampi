@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from collections import namedtuple
 
@@ -23,7 +24,8 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def test_namespace(pytestconfig):
-    return pytestconfig.getoption("--test-namespace")
+    test_namespace = pytestconfig.getoption("--test-namespace")
+    logging.info("+++ Using test namespace: {}".format(test_namespace))
 
 
 @pytest.fixture(scope="session")
@@ -34,10 +36,12 @@ def infratests_context(pytestconfig, test_namespace):
     delete_namespace_afterward = False
 
     if deployment_tests_are_included:
+        logging.info("+++ Deployment tests are included.")
         _create_test_namespace_if_needed(test_namespace)
         obj_to_yield = (_build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin))
         delete_namespace_afterward = True
     else:
+        logging.info("+++ No deployment tests are included.")
         obj_to_yield = InfraTestContext(HelmTestAdaptor(use_tiller_plugin, test_namespace))
 
     yield obj_to_yield

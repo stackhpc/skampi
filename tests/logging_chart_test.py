@@ -74,15 +74,19 @@ class TestLoggingChartTemplates:
 
 @pytest.fixture(scope="module")
 def logging_chart_deployment(helm_adaptor, k8s_api):
+    logging.info("+++ Deploying logging chart.")
     chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
     yield chart_deployment
+    logging.info("+++ Deleting logging chart release.")
     chart_deployment.delete()
 
 
 @pytest.fixture(scope="module")
 def echoserver(test_namespace):
+    logging.info("+++ Deploying echoserver pod.")
     echoserver = EchoServer(test_namespace)
     yield echoserver
+    logging.info("+++ Deleting echoserver pod.")
     echoserver.delete()
 
 
