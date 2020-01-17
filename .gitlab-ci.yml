@@ -77,6 +77,8 @@ chart-pytest:
   script:
     - *pip_install_test_requirements
     - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
+  after_script:
+    - kubectl delete namespace ci-$CI_JOB_ID
   environment:
     name: test
   artifacts:
