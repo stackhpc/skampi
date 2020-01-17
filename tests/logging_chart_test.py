@@ -139,7 +139,7 @@ def _query_elasticsearch_for_log(log_msg):
     query_body = {
         "query": {
             "match": {
-                "log": log_msg
+                "MESSAGE": log_msg
             }
         }
     }
