@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from datetime import datetime
 from time import sleep
@@ -105,9 +106,9 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
     # act:
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
-    fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
+    # TODO solve _wait_until_fluentd_ingests_echoserver_logs for journald-fluentd integration
     sleep(80)
-    # TODO solve this for journald integration
+    # fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
     # _wait_until_fluentd_ingests_echoserver_logs(
     #     fluentd_daemonset_name, datetime.now(), test_namespace)
 
@@ -138,8 +139,9 @@ def _query_elasticsearch_for_log(log_msg):
     es = Elasticsearch(['127.0.0.1:9200'], use_ssl=False, verify_certs=False, ssl_show_warn=False)
     query_body = {
         "query": {
-            "match": {
-                "MESSAGE": log_msg
+            "multi_match": {
+                "query": log_msg,
+                "fields": ["log", "MESSAGE"]
             }
         }
     }
@@ -147,4 +149,6 @@ def _query_elasticsearch_for_log(log_msg):
         index="logstash-*",
         body=query_body
     )
+
+    logging.debug(result)
     return result
