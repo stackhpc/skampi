@@ -74,10 +74,8 @@ chart-pytest:
     - docker-executor
   allow_failure: false
   before_script:
-    - helm tiller start-ci
-    - $(helm tiller env)
-  script:
     - *pip_install_test_requirements
+  script:
     - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m -quarantine"
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
@@ -98,10 +96,8 @@ chart-pytest-quarantine:
     - docker-executor
   allow_failure: true
   before_script:
-    - helm tiller start-ci
-    - $(helm tiller env)
-  script:
     - *pip_install_test_requirements
+  script:
     - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m quarantine"
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
