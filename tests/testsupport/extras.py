@@ -9,10 +9,11 @@ class EchoServer(object):
     DEFINITION_FILE = 'tests/testsupport/extras/echoserver.yaml'
     LISTEN_PORT = 9001
 
-    def __init__(self, namespace):
+    def __init__(self, namespace, local_port=LISTEN_PORT):
         with open(self.DEFINITION_FILE, 'r') as f:
             self.definition = parse_yaml_str(f.read())
         self.namespace = namespace
+        self.local_port = local_port
 
         self._deploy()
         self._proxy()
@@ -25,13 +26,13 @@ class EchoServer(object):
 
     def _proxy(self, wait=True):
         self._proxy_proc = subprocess.Popen(
-            "kubectl port-forward -n {0} pod/echoserver {1}:{1}".format(self.namespace, self.LISTEN_PORT).split())
+            "kubectl port-forward -n {} pod/echoserver {}:{}".format(self.namespace, self.local_port, self.LISTEN_PORT).split())
 
         if wait:
             wait_until(self.is_proxied_locally)
 
     def print_to_stdout(self, line):
-        requests.post("http://127.0.0.1:{}/echo".format(self.LISTEN_PORT), line)
+        requests.post("http://127.0.0.1:{}/echo".format(self.local_port), line)
 
     def delete(self):
         self._proxy_proc.kill()
@@ -47,4 +48,4 @@ class EchoServer(object):
         return subprocess.run(cmd, shell=True).returncode == 0
 
     def is_proxied_locally(self):
-        return check_connection('127.0.0.1', self.LISTEN_PORT)
+        return check_connection('127.0.0.1', self.local_port)
