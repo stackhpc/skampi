@@ -12,7 +12,7 @@ template_tests:
 	exit $$rc
 
 template_pytests:
-	pytest -m no_deploy $(PYTEST_ARGS)
+	python3 -m pytest -m no_deploy $(PYTEST_ARGS)
 
 chart_pytests:
-	pytest -m chart_deploy $(PYTEST_ARGS)
+	python3 -m pytest -m chart_deploy $(PYTEST_ARGS)

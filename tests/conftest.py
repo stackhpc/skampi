@@ -71,8 +71,8 @@ def _create_test_namespace_if_needed(test_namespace):
     get_ns_result = subprocess.run(get_ns_cmd.split(), stdout=subprocess.PIPE, shell=True)
     if (get_ns_result.returncode != 0):
         create_ns_cmd = "kubectl create namespace {}".format(test_namespace)
-        create_ns_result = subprocess.run(create_ns_cmd.split(), stdout=subprocess.PIPE, encoding="utf8",
-                                          check=True)
+        subprocess.run(create_ns_cmd.split(), stdout=subprocess.PIPE, encoding="utf8",
+                       check=True)
 
 
 def _build_infrastestcontext_object(InfraTestContext, test_namespace, use_tiller_plugin):
