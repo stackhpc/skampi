@@ -26,6 +26,7 @@ def pytest_addoption(parser):
 def test_namespace(pytestconfig):
     test_namespace = pytestconfig.getoption("--test-namespace")
     logging.info("+++ Using test namespace: {}".format(test_namespace))
+    return test_namespace
 
 
 @pytest.fixture(scope="session")

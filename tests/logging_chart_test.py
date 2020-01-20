@@ -19,7 +19,7 @@ def logging_chart(request, helm_adaptor):
 @pytest.mark.no_deploy
 @pytest.mark.usefixtures("logging_chart")
 class TestLoggingChartTemplates:
-    def test_pvc_reclaim_policy_is_set_to_recycle(self):
+    def test_pvc_reclaim_policy_is_set_to_Delete(self):
         resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
 
         assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
