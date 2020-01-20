@@ -1,8 +1,5 @@
 .PHONY: template_tests
 
-TEST_NAMESPACE?=
-PYTEST_ARGS?=$(if $(CI),--test-namespace=$(TEST_NAMESPACE),)
-
 template_tests:
 	rc=0; \
 	for chrt in `ls charts/`; do \
