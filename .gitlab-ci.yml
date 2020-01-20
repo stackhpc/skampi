@@ -76,7 +76,7 @@ chart-pytest:
   before_script:
     - *pip_install_test_requirements
   script:
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m -quarantine"
+    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
@@ -98,7 +98,7 @@ chart-pytest-quarantine:
   before_script:
     - *pip_install_test_requirements
   script:
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m quarantine"
+    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
