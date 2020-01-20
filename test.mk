@@ -12,7 +12,7 @@ template_tests:
 	exit $$rc
 
 template_pytests:
-	python3 -m pytest "-m no_deploy $(PYTEST_ARGS)"
+	pytest -m no_deploy $(PYTEST_ARGS)
 
 chart_pytests:
-	python3 -m pytest "-m chart_deploy --use-tiller-plugin $(PYTEST_ARGS)"
+	pytest -m chart_deploy --use-tiller-plugin $(PYTEST_ARGS)
