@@ -62,7 +62,9 @@ ct-test:
   script:
   - helm tiller start-ci
   - $(helm tiller env)
-  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID
+  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID --namespace ct-test-$CI_JOB_ID
+  after_script:
+    - kubectl delete namespace ct-test-$CI_JOB_ID || true
   environment:
     name: test
 
