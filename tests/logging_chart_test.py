@@ -71,6 +71,18 @@ class TestLoggingChartTemplates:
         for env_var in expected_env_vars:
             assert env_var in env_vars
 
+    def test_elastic_pvc_has_label_selector_to_match_pv_app_and_release(self):
+        elastic_pv, elastic_pvc = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
+        elastic_pv_app_label = elastic_pv['metadata']['labels']['app']
+        elastic_pv_release_label = elastic_pv['metadata']['labels']['release']
+
+        expected_matchlabels = {
+            "app": elastic_pv_app_label,
+            "release": elastic_pv_release_label
+        }
+
+        assert elastic_pvc['spec']['selector']['matchLabels'] == expected_matchlabels
+
 
 @pytest.fixture(scope="module")
 def logging_chart_deployment(helm_adaptor, k8s_api):

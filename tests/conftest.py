@@ -63,7 +63,7 @@ def k8s_api():
 
 def _are_deployment_tests_included(pytestconfig):
     markers = pytestconfig.getoption("-m")
-    return len(markers) == 0 or "chart_deploy" in markers
+    return len(markers) != 0 and "chart_deploy" in markers
 
 
 def _create_test_namespace_if_needed(test_namespace):
