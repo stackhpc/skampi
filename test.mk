@@ -11,8 +11,3 @@ template_tests:
 	done; \
 	exit $$rc
 
-template_pytests:
-	pytest -m no_deploy $(PYTEST_ARGS)
-
-chart_pytests:
-	pytest -m "chart_deploy and not quarantine" --use-tiller-plugin $(PYTEST_ARGS)

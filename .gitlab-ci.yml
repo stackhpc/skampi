@@ -44,7 +44,7 @@ helm-template-pytest:
   allow_failure: false
   script:
   - *pip_install_test_requirements
-  - make template_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
+  - pytest -m no_deploy --test-namespace=ci-$CI_JOB_ID
   artifacts:
     when: always
     name: template-pytest-reports
@@ -76,7 +76,7 @@ chart-pytest:
   before_script:
     - *pip_install_test_requirements
   script:
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
+    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
@@ -98,7 +98,7 @@ chart-pytest-quarantine:
   before_script:
     - *pip_install_test_requirements
   script:
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
+    - pytest -m quarantine --use-tiller-plugin
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
