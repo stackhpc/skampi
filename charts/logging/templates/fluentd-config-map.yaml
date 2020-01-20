@@ -20,6 +20,14 @@ data:
     </match>
 
     <filter docker.systemd>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        kubernetes_namespace ${record["kubernetes"]["namespace_name"]}
+      </record>
+    </filter>
+
+    <filter docker.systemd>
       @type grep
       <regexp>
         key kubernetes_namespace
@@ -35,6 +43,14 @@ data:
       <record>
         kubernetes_namespace ${record["kubernetes"]["namespace_name"]}
       </record>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <regexp>
+        key kubernetes_namespace
+        pattern /{{ .Release.Namespace }}/
+      </regexp>
     </filter>
 
 ---
