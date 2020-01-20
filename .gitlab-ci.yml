@@ -44,7 +44,7 @@ helm-template-pytest:
   allow_failure: false
   script:
   - *pip_install_test_requirements
-  - make template_pytests TEST_NAMESPACE=ci-$CI_JOB_ID
+  - pytest -m no_deploy --test-namespace=ci-$CI_JOB_ID
   artifacts:
     when: always
     name: template-pytest-reports
@@ -62,7 +62,9 @@ ct-test:
   script:
   - helm tiller start-ci
   - $(helm tiller env)
-  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID
+  - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID --namespace ct-test-$CI_JOB_ID
+  after_script:
+    - kubectl delete namespace ct-test-$CI_JOB_ID || true
   environment:
     name: test
 
@@ -72,13 +74,11 @@ chart-pytest:
     - docker-executor
   allow_failure: false
   before_script:
-    - helm tiller start-ci
-    - $(helm tiller env)
-  script:
     - *pip_install_test_requirements
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m -quarantine"
+  script:
+    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID
   after_script:
-    - kubectl delete namespace ci-$CI_JOB_ID
+    - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
     name: test
   artifacts:
@@ -96,13 +96,11 @@ chart-pytest-quarantine:
     - docker-executor
   allow_failure: true
   before_script:
-    - helm tiller start-ci
-    - $(helm tiller env)
-  script:
     - *pip_install_test_requirements
-    - make chart_pytests TEST_NAMESPACE=ci-$CI_JOB_ID PYTEST_ARGS="-m quarantine"
+  script:
+    - pytest -m quarantine --use-tiller-plugin
   after_script:
-    - kubectl delete namespace ci-$CI_JOB_ID
+    - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
     name: test
   artifacts:
