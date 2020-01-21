@@ -17,8 +17,6 @@ class HelmTestAdaptor(object):
     def install(self, chart):
         cmd = self._wrap_tiller(self.HELM_INSTALL_CMD.format(chart, self.namespace))
         cmd = cmd.split()
-        if chart == 'logging':
-            cmd = cmd + ['--set', 'demo_mode.enabled=true']
         return self._run_subprocess(cmd)
 
     def delete(self, helm_release):
