@@ -30,6 +30,7 @@ def test_logs_getting_to_elastic(logging_chart_deployment, test_namespace):
     api_response = api_instance.list_namespaced_pod(namespace, timeout_seconds=timeout_seconds)
     api_response_dict = api_response.to_dict()
     pod_names = [i['metadata']['name'] for i in api_response_dict['items']]
+    logging.info("Running pods {}".format(pod_names))
     elastic_pod = [i for i in pod_names if 'elastic-logging' in i]
     assert pod_names
     assert elastic_pod
@@ -51,11 +52,11 @@ def test_logs_getting_to_elastic(logging_chart_deployment, test_namespace):
         response_json = json.loads(resp)
         if 'error' in response_json:
             logging.info("Retrying")
-            time.sleep(10)
+            time.sleep(20)
             continue
         if 'count' in response_json and response_json['count'] == 0:
             logging.info("Retrying")
-            time.sleep(10)
+            time.sleep(5)
             continue
         break
 
