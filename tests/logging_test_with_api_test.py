@@ -130,3 +130,18 @@ def test_logs_getting_to_elastic(logging_chart_deployment, test_namespace):
             time.sleep(5)
             continue
         break
+
+    command_str = ("curl -s  -X GET "
+                   "http://0.0.0.0:9200/logstash-{}/_search?"
+                   "q=kubernetes_namespace={}&size=1&pretty=true").format(today_str,
+                                                                          test_namespace)
+    command = ['/bin/bash', '-c', command_str]
+    logging.info("Test command: {}".format(command))
+    resp = kubernetes.stream.stream(api_instance.connect_get_namespaced_pod_exec,
+                                        elastic_pod_name,
+                                        test_namespace,
+                                        command=command,
+                                        stderr=True, stdin=False,
+                                        stdout=True, tty=False)
+    resp = resp.replace("'", '"')
+    logging.info("Sample log: " + resp)
