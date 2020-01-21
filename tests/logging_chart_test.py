@@ -124,7 +124,7 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
     # TODO solve _wait_until_fluentd_ingests_echoserver_logs for journald-fluentd integration
-    sleep(60)
+    sleep(80) # not ideal because this varies with load
     # fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
     # _wait_until_fluentd_ingests_echoserver_logs(
     #     fluentd_daemonset_name, datetime.now(), test_namespace)
