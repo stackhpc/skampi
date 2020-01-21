@@ -16,7 +16,10 @@ class HelmTestAdaptor(object):
 
     def install(self, chart):
         cmd = self._wrap_tiller(self.HELM_INSTALL_CMD.format(chart, self.namespace))
-        return self._run_subprocess(cmd.split())
+        cmd = cmd.split()
+        if chart == 'logging':
+            cmd = cmd + ['--set', 'demo_mode.enabled=true']
+        return self._run_subprocess(cmd)
 
     def delete(self, helm_release):
         cmd = self._wrap_tiller(self.HELM_DELETE_CMD.format(helm_release))
@@ -31,7 +34,6 @@ class HelmTestAdaptor(object):
             cli_cmd = self.__prefix_cmd_with_tiller_run(helm_cmd)
         else:
             cli_cmd = helm_cmd
-
         return cli_cmd
 
     @staticmethod
