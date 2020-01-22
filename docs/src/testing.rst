@@ -1,8 +1,3 @@
-.. |CI Pipeline| image:: _static/img/ci_pipeline.png 
-    :alt: SKAMPI Gitlab CI pipeline
-.. |Infra Testware| image:: _static/img/infra_testware.png 
-    :alt: Testware architecture and conceptual view
-
 Testing SKAMPI 
 ==============
 The SKA MPI codebase ultimately holds all the information required to deploy and configure the complete prototype.
@@ -23,8 +18,8 @@ Testing at the appropriate level will ensure faster feedback of changes, reducin
 ultimately improve the quality of the system. **Troubleshooting faults in a distributed system caused by
 a typo in configuration is no fun!**
 
-To support testing, various different jobs are executed as part of the SKAMPI build pipeline and some 
-`testware <https://en.wikipedia.org/wiki/Testware>`_ has been developed to aid in testing.
+To support different levels of testing, various different jobs are executed as part of the SKAMPI build pipeline and
+some `testware <https://en.wikipedia.org/wiki/Testware>`_ has been developed to aid in testing.
 
 
 Pipeline Stages for Testing
@@ -44,7 +39,9 @@ The stages of the pipeline related to testing are outlined below:
 +-------------------+------------------------------------------------------------------------------------------------------------------+
 
 **SKAMPI Gitlab CI Pipeline** (as of January 2020):
-|CI Pipeline|
+
+.. image:: _static/img/ci_pipeline.png 
+    :alt: SKAMPI Gitlab CI pipeline
 
 Python testware
 ^^^^^^^^^^^^^^^
@@ -79,6 +76,15 @@ currently defined (see */pytest.ini* for more details):
 ``quarantine``
     Indicates tests that should be executed but not necessarily break the build. Should be used sparingly. 
 
+The following custom command-line flags can be passed to Pytest:
+
+``--test-namespace <namespace>``
+    Specify the namespace to use in the test session. Defaults to ``ci``.
+
+``--use-tiller-plugin``
+    Required when using the `helm-tiller plugin <https://github.com/rimusz/helm-tiller>`_ Indicates that all commands
+    to Helm should be prefixed with ``helm tiller run --``.
+
 Test lifecycle
 """"""""""""""
 The lifecycle (setup, execute, teardown) of tests are managed by pytest fixtures, defined in `/tests/conftest.py`.
@@ -96,24 +102,25 @@ its own namespace and resources, ensuring test isolation.
 Test support
 """"""""""""
 
-A collection of useful components and functions to assist in testing can be found in the ``tests.testsupport`` module:
+A collection of useful components and functions to assist in testing can be found in the ``tests.testsupport`` module
+(*/tests/testsupport/*):
 
-``testsupport.util``:
+``testsupport.util``
     Functions that may be useful in testing such as `wait_until` which allows polling, retries and timeouts.
 
-``testsupport.helm.HelmChart``:
+``testsupport.helm.HelmChart``
     Represents a Helm chart that is the collection of YAML template files and not necessarily a set of deployed
     Kubernetes resources. Primarily used to assist in testing the policies in YAMl specifications, i.e. ``no_deploy``
     tests.
 
-``testsupport.helm.ChartDeployment``: 
+``testsupport.helm.ChartDeployment``
     Represents a deployed Helm chart and offers access to its resources in-cluster their metadata (by querying the
     Kubernetes API server).
 
-``testsupport.helm.HelmTestAdaptor``:
+``testsupport.helm.HelmTestAdaptor``
     A rudimentary adaptor class to manage th interaction with the Helm CLI.
 
-``testsupport.extras.EchoServer``:
+``testsupport.extras.EchoServer``
     Represents a pod that can be deployed alongside the chart under test, containing a basic Python HTTP server that
     can receive commands. Currently it only supports echoing any HTTP POST sent to the `/echo` path. A handle to this
     is provided by the `print_to_stdout` method.
@@ -131,16 +138,56 @@ example of this see the ``tango_base_release`` fixture in */tests/tango_base_cha
 
 The diagram below illustrates the relationship between the Python classes in test code, CLI tools and the cluster.
 
-|Infra Testware|
+.. image:: _static/img/infra_testware.png 
+    :alt: Testware architecture and conceptual view
+
+Running locally
+"""""""""""""""
+Requirements:
+
+- A Kubernetes cluster (minikube).
+- **kubectl** authorized to create namespaces and deploy resources to the cluster.
+- **helm v2.16.1** 
+- `helm-tiller plugin <https://github.com/rimusz/helm-tiller>`_ (optional).
+- **Python 3.7+**
+
+1. Install Python dependencies: ``pip install -r test-requirements.txt``
+2. Execute only the ``no_deploy`` tests: ``pytest -m "no_deploy and not quarantine"``
+3. Execute only the ``chart_deploy`` tests: ``pytest -m "chart_deploy and not quarantine"``
+4. Execute the quarantined tests: ``pytest -m quarantine``
+
+You should use the ``--use-tiller-plugin`` flag if you're using the **helm-tiller** plugin instead of an in-cluster
+tiller. See following `article <https://rimusz.net/tillerless-helm>`_ for details. This is recommended until we
+completely migrate to Helm 3 and remove Helm 2 in our codebase.
+
+PyCharm integration
+"""""""""""""""""""
+PyCharm as an IDE can be used to run and debug the tests, just be sure to edit the Run/Debug configuration so that it
+has the appropriate "Additional Arguments" and "Working Directory" (SKAMPI root directory and not */tests*).
+
+.. image:: _static/img/pycharm_pytest_config_1.png 
+    :alt: PyCharm config for running chart_deploy tests
+
+.. image:: _static/img/pycharm_pytest_config_2.png 
+    :alt: PyCharm config for running specific chart_deploy test
+
 
 Third-party libraries
 """""""""""""""""""""
+The following third-party libraries are included in the `test-requirements.txt` and used by the tests and various
+supporting testware components:
+
 - `python kubernetes client <https://github.com/kubernetes-client/python>`_ is the official kubernetes API client for
   Python. It's provided as a pytest fixture, ``k8s_api`` and also used by ``ChartDeployment`` to obtain a list of deployed
   pods(see get_pods method).
 
 - `testinfra <https://testinfra.readthedocs.io/en/latest/index.html>`_ is a library that allows connecting to pods
-and asserting on the state of various things inside them such as open ports, directory structure, user accounts, etc.
+  and asserting on the state of various things inside them such as open ports, directory structure, user accounts, etc.
+
+- `elasticsearch-py <https://elasticsearch-py.readthedocs.io/en/master>`_ is the official, low-level Python client for 
+  ElasticSearch.
+
+- `requests <http://python-requests.org/>`_ is the popular HTTP client library.
 
 
 .. [unit] A unit in this context is a Helm chart that can be deployed and tested.
