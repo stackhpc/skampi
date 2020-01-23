@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import json
 from datetime import datetime
 from time import sleep
 
@@ -34,11 +35,6 @@ class TestLoggingChartTemplates:
 
         assert elastic_svc['spec']['type'] == 'NodePort'
         assert expected_portmapping in elastic_svc['spec']['ports']
-
-    def test_elastic_curator_set_to_run_once_every_hour(self):
-        curator_job = parse_yaml_str(self.chart.templates['elastic_curator.yaml']).pop()
-
-        assert curator_job['spec']['schedule'] == '0 1 * * *'
 
     def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(self):
         serviceaccount, clusterrole, clusterrolebinding = parse_yaml_str(
@@ -83,6 +79,17 @@ class TestLoggingChartTemplates:
 
         assert elastic_pvc['spec']['selector']['matchLabels'] == expected_matchlabels
 
+    def test_elastic_ilm_chart_config(self):
+        """Check that the values.yaml is applied as expected"""
+        template = self.chart.templates['elastic-config-map.yaml']
+        elastic_cm = parse_yaml_str(template)[0]
+        assert 'ska_ilm_policy.json' in elastic_cm['data']
+        ska_ilm_policy = json.loads(elastic_cm['data']['ska_ilm_policy.json'])
+        ska_ilm_policy_phases = ska_ilm_policy['policy']['phases']
+        assert ska_ilm_policy_phases['hot']['actions']['rollover']['max_size'] == '1gb'
+        assert ska_ilm_policy_phases['hot']['actions']['rollover']['max_age'] == '1d'
+        assert ska_ilm_policy_phases['delete']['min_age'] == '1d'
+
 
 @pytest.fixture(scope="module")
 def logging_chart_deployment(helm_adaptor, k8s_api):
@@ -123,16 +130,38 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
     # act:
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
-    # TODO solve _wait_until_fluentd_ingests_echoserver_logs for journald-fluentd integration
-    sleep(80) # not ideal because this varies with load
+
     # fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
     # _wait_until_fluentd_ingests_echoserver_logs(
     #     fluentd_daemonset_name, datetime.now(), test_namespace)
 
-    # assert:
-    result = _query_elasticsearch_for_log(expected_log)
-    assert len(result['hits']['hits']) > 0
+    # Retry to give the log time to arrive
+    for i in range(1,30):
+        logging.info(f"Trying {i}/30")
 
+        result = _query_elasticsearch_for_log(expected_log)
+        if result['hits']['total']['value'] == 0:
+            sleep(20)
+            continue
+        else:
+            break
+    assert result['hits']['total']['value']
+
+
+@pytest.mark.quarantine
+@pytest.mark.chart_deploy
+def test_elastic_config_applied(logging_chart_deployment, test_namespace):
+    """ Test that the ilm policy has been applied"""
+    pods = logging_chart_deployment.get_pods()
+    pods = [pod.to_dict() for pod in pods]
+    pod_names = [pod['metadata']['name'] for pod in pods]
+    elastic_pod_name = [pod_name for pod_name in pod_names if 'elastic-lo' in pod_name][0]
+    command_str = 'curl -s  -X GET http://0.0.0.0:9200/_ilm/policy/ska_ilm_policy'
+    resp = logging_chart_deployment.pod_exec_bash(elastic_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    logging.info(resp)
+    resp_json = json.loads(resp)
+    assert 'ska_ilm_policy' in resp_json
 
 def _get_elastic_svc_name(logging_chart_deployment):
     elastic_svc_name = [svc.metadata.name for svc in logging_chart_deployment.get_services() if

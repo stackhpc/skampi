@@ -3,6 +3,7 @@ import os
 import random
 import string
 import subprocess
+import kubernetes
 
 
 class HelmTestAdaptor(object):
@@ -63,6 +64,32 @@ class ChartDeployment(object):
         assert self.release_name is not None
         self._helm_adaptor.delete(self.release_name)
 
+    def pod_exec_bash(self, pod_name, command_str):
+        """Execute a command on the pod commandline using bash
+
+        Parameters
+        ----------
+        pod_name : string
+            The name of the pod to execute the command in
+        command_str : string
+            The command to execute.
+            E.g passing in `ls -l` will result in `/bin/bash -c ls -l` being executed
+
+        Returns
+        -------
+        string
+            The result of the command
+        """
+        api_instance = self._k8s_api.CoreV1Api()
+        command = ['/bin/bash', '-c', command_str]
+        resp = kubernetes.stream.stream(api_instance.connect_get_namespaced_pod_exec,
+                                        pod_name,
+                                        self._helm_adaptor.namespace,
+                                        command=command,
+                                        stderr=True, stdin=False,
+                                        stdout=True, tty=False)
+        return resp
+
     def get_pods(self, pod_name=None):
         api_instance = self._k8s_api.CoreV1Api()
 
@@ -81,8 +108,8 @@ class ChartDeployment(object):
 
     def _get_pods_by_release_name_in_pod_name(self, api_instance, pod_list):
         all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
-        pod_list = [pod for pod in all_namespaced_pods if
-                    pod.metadata.name.index(self.release_name) > -1]
+        pod_list = [pod for pod in all_namespaced_pods
+                    if self.release_name in pod.metadata.name]
         return pod_list
 
     def _get_pods_by_release_name_in_label(self, api_instance):
