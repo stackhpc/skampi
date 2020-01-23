@@ -4,8 +4,8 @@ The SKA MPI codebase ultimately holds all the information required to deploy and
 This information is encapsulated as a collection of `Helm <https://helm.sh/>`_ charts, Makefiles and any other
 scripts, components to support its test and deployment.
 
-This page outlines the various categories and approaches one can employ to test various aspects of SKA MPI prototype
-that can be implemented in this repository.
+This page outlines the various categories of testing and approaches one can employ to test various aspects of SKA MPI prototype that can
+be implemented in this repository.
 
 Testing Infrastructure as Code
 ------------------------------
@@ -82,19 +82,19 @@ The following custom command-line flags can be passed to Pytest:
     Specify the namespace to use in the test session. Defaults to ``ci``.
 
 ``--use-tiller-plugin``
-    Required when using the `helm-tiller plugin <https://github.com/rimusz/helm-tiller>`_ Indicates that all commands
-    to Helm should be prefixed with ``helm tiller run --``.
+    Indicates that all commands to Helm should be prefixed with ``helm tiller run --``. Required when using the 
+    `helm-tiller plugin <https://github.com/rimusz/helm-tiller>`_.
 
 Test lifecycle
 """"""""""""""
 The lifecycle (setup, execute, teardown) of tests are managed by pytest fixtures, defined in `/tests/conftest.py`.
 The ``infratest_context`` fixture in particular will determine if tests that involve deployments are included in the
-pytest run, i.e. ``the chart_deploy`` marker is included. It will then:
+pytest run, i.e. the ``chart_deploy`` marker is included. It will then:
 
 1. invoke **kubectl** to create a namespace for the test resources(pods, services, etc.) to be deployed into 
 2. ensure this namespace is deleted after the test run
 
-**Note**: the default namespace is ci, but can be overriden by specifying the custom pytest option,
+**Note**: the default namespace is ``ci``, but can be overriden by specifying the custom pytest option,
 ``--test-namespace``. When running inside the pipeline, this flag is set to ``ci-$CI_JOB_ID`` so each job will use
 its own namespace and resources, ensuring test isolation.
 
@@ -109,8 +109,8 @@ A collection of useful components and functions to assist in testing can be foun
     Functions that may be useful in testing such as `wait_until` which allows polling, retries and timeouts.
 
 ``testsupport.helm.HelmChart``
-    Represents a Helm chart that is the collection of YAML template files and not necessarily a set of deployed
-    Kubernetes resources. Primarily used to assist in testing the policies in YAMl specifications, i.e. ``no_deploy``
+    Represents a Helm chart that is the collection of YAML template files and *not necessarily a set of deployed 
+    Kubernetes resources*. Primarily used to assist in testing the policies in YAML specifications, i.e. ``no_deploy`` 
     tests.
 
 ``testsupport.helm.ChartDeployment``
@@ -118,7 +118,7 @@ A collection of useful components and functions to assist in testing can be foun
     Kubernetes API server).
 
 ``testsupport.helm.HelmTestAdaptor``
-    A rudimentary adaptor class to manage th interaction with the Helm CLI.
+    A rudimentary adaptor class to manage the interaction with the Helm CLI.
 
 ``testsupport.extras.EchoServer``
     Represents a pod that can be deployed alongside the chart under test, containing a basic Python HTTP server that
@@ -132,8 +132,8 @@ The ``ChartDeployment`` class is an abstraction to represent a deployed chart an
 in-cluster (by querying the Kubernetes API) and metadata (such as ``release_name``).
 
 In fact, **instantiating a ChartDeployment in code will deploy the specified chart**. A useful pattern is to create
-pytest fixture that represents the chart to be deployed and yields a ``ChartDeployment`` object. It can also call
-``.delete()`` to ensure the chart is deleted and pytest fixture scope can be used to a chart's lifespan. For an
+Pytest fixture that represents the chart to be deployed and yields a ``ChartDeployment`` object. It can also call
+``.delete()`` to ensure the chart is deleted and Pytest fixture scope can be used to limit a chart's lifespan. For an
 example of this see the ``tango_base_release`` fixture in */tests/tango_base_chart_test.py*.
 
 The diagram below illustrates the relationship between the Python classes in test code, CLI tools and the cluster.
