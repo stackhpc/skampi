@@ -3,7 +3,7 @@ import os
 import random
 import string
 import subprocess
-import kubernetes
+import logging
 
 
 class HelmTestAdaptor(object):
@@ -80,15 +80,12 @@ class ChartDeployment(object):
         string
             The result of the command
         """
-        api_instance = self._k8s_api.CoreV1Api()
-        command = ['/bin/bash', '-c', command_str]
-        resp = kubernetes.stream.stream(api_instance.connect_get_namespaced_pod_exec,
-                                        pod_name,
-                                        self._helm_adaptor.namespace,
-                                        command=command,
-                                        stderr=True, stdin=False,
-                                        stdout=True, tty=False)
-        return resp
+        cmd = ['kubectl', 'exec', '-n', self._helm_adaptor.namespace, pod_name,
+               '--', '/bin/bash', '-c', command_str]
+        logging.info(cmd)
+        res = self._helm_adaptor._run_subprocess(cmd)
+        return res
+
 
     def get_pods(self, pod_name=None):
         api_instance = self._k8s_api.CoreV1Api()
