@@ -4,7 +4,7 @@ This section contains the testing scripts and configuration data for performing 
 
 ## Concepts 
 
-The tests aims to replicate a user operating on the system to achieve a set of use requirements. To help with automation the interface is via a text based interactive OET console. Thus the entrypoint into the system is on the OET. Future tests should also explore the greater use of GUI's (e.g. webjive) as entry points.
+The tests aims to replicate a user operating on the system to achieve a set of user requirements. To help with automation the interface is via a text based interactive OET console. Thus the entrypoint into the system is on the OET. Future tests should also explore the greater use of GUI's (e.g. webjive) as entry points.
 
 To observe the system requires looking at the internal state of the system. This is currently implemented using the TANGO framework but in future may include accessing the kubernetes framework and other SDP related communication frameworks.
 
@@ -54,18 +54,18 @@ Replace `31910` with the value you get. Then set up a remote ssh connection in v
 
 ```yaml
 Host engage-VM-acceptance-testing
-  HostName 192.168.93.28
-  Port 31910
+  HostName <your machine IP>
+  Port <your port nr>
   User tango
 ```
 
-Upon entering the container execution enviornment you should install the python extension on your IDE. The shell will normally open in iTango that allows you to test commands on the OET. When exiting iTango (`exit()`), navigate to skampi to worok on your testing scripts `/home/tango/skampi/`. To run tests manualy you need to first invoke the correct interpreter:
+Upon entering the container execution enviornment, you should install the python extension on your IDE. The shell will normally open in iTango that allows you to test commands on the OET. When exiting iTango (`exit()`), navigate to skampi to work on your testing scripts `/home/tango/skampi/`. To run tests manualy you need to first invoke the correct interpreter:
 
 ```shell
 . /venv/bin/activate
 ```
 
-Thereafter the neccessarry dependencies will be loaded allowing you access to the correct oet.domain libraries.
+Thereafter, the neccessarry dependencies will be loaded allowing you access to the correct oet.domain libraries.
 Tests are initiated by:
 
 ```shell
@@ -82,7 +82,7 @@ The get your IDE to point to the same execution environment paste the following 
 To run a test autimatically the pod is configured slightly differently as a test job that gets invoked by the following command on your machine:
 
 ```shell
-deploy_test_job:
+make deploy_test_job:
 ```
 
 This command can then be used in a CI setup to run acceptance tests are part of a pipeline.
