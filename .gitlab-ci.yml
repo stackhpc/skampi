@@ -76,6 +76,12 @@ chart-pytest:
   before_script:
     - *pip_install_test_requirements
   script:
+    - apt install -yq psmisc
+    - pstree
+    - kubectl create ns tmp
+    - kubectl run -n tmp tmp-pod --restart=Never --image=busybox --wait -- /bin/sh -c 'sleep 300'
+    - kubectl exec -n tmp -it tmp-pod -- /bin/sh -c 'uname -r && ps aux'
+    - kubectl delete ns tmp
     - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] && true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
