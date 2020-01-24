@@ -1,17 +1,22 @@
 image: nexus.engageska-portugal.pt/ska-docker/deploy:0.3.0
 
 stages:
-  - static_analysis
-  - unit_test
-  - clean
-  - deploy
-  - test
-  - post_test
-  - lifecycle
-  - debug
+  - problem
 
 .pip_install_test_requirements: &pip_install_test_requirements |-
   pip3 install -r test-requirements.txt
+
+in-cluster-problem:
+  stage: problem
+  tags:
+    - docker-executor
+  before_script:
+    - kubectl create ns tmp
+  script:
+    - kubectl run -n tmp tmp-pod --restart=Never --image=busybox --wait -- /bin/sh -c 'sleep 300'
+    - kubectl exec -n tmp tmp-pod -- /bin/sh -c 'uname -r && ps aux'
+  after_script:
+    - kubectl delete ns tmp
 
 helm-lint:
   stage: static_analysis
@@ -78,10 +83,6 @@ chart-pytest:
   script:
     - apt install -yq psmisc
     - pstree
-    - kubectl create ns tmp
-    - kubectl run -n tmp tmp-pod --restart=Never --image=busybox --wait -- /bin/sh -c 'sleep 300'
-    - kubectl exec -n tmp -it tmp-pod -- /bin/sh -c 'uname -r && ps aux'
-    - kubectl delete ns tmp
     - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] && true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
