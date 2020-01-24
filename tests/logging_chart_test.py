@@ -187,6 +187,7 @@ def test_elastic_config_applied(logging_chart_deployment, test_namespace):
     assert source['ska_thread_id'] == "thread_id_123"
 
 
+@pytest.mark.quarantine
 @pytest.mark.chart_deploy
 def test_kibana_is_up(logging_chart_deployment):
     """Check that Kibana is up"""
@@ -194,6 +195,21 @@ def test_kibana_is_up(logging_chart_deployment):
     BASE_PATH = "/kibana"
     command_str = ('curl -s  -X GET '
                    'http://0.0.0.0:5601{}/api/spaces/space').format(BASE_PATH)
+
+    resp = logging_chart_deployment.pod_exec_bash(kibana_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    resp = resp.replace("True", "true")
+    logging.info(resp)
+    assert len(json.loads(resp)) > 0
+
+@pytest.mark.quarantine
+@pytest.mark.chart_deploy
+def test_kibana_is_up_s(logging_chart_deployment):
+    """Check that Kibana is up"""
+    kibana_pod_name = logging_chart_deployment.search_pod_name('kibana-deployment')[0]
+    BASE_PATH = "/kibana"
+    command_str = ('curl -s  -X GET '
+                   'https://0.0.0.0:5601{}/api/spaces/space').format(BASE_PATH)
 
     resp = logging_chart_deployment.pod_exec_bash(kibana_pod_name, command_str)
     resp = resp.replace("'", '"')
