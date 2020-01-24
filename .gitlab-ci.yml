@@ -17,4 +17,6 @@ in-cluster-problem:
     - kubectl exec -n tmp tmp-pod -- /bin/sh -c 'uname -r && ps aux'
   after_script:
     - kubectl delete ns tmp
+  environment:
+    name: test
 
