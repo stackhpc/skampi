@@ -106,6 +106,25 @@ class ChartDeployment(object):
 
         return pod_list
 
+    def search_pod_name(self, term):
+        """Searches the pod names that contains the term
+
+        Parameters
+        ----------
+        term : string
+            The search term to search for
+
+        Returns
+        -------
+        list
+            The list of pod names that contains the term
+        """
+        pods = self.get_pods()
+        pods = [pod.to_dict() for pod in pods]
+        all_pod_names = [pod['metadata']['name'] for pod in pods]
+        searched_pod_names = [pod_name for pod_name in all_pod_names if term in pod_name]
+        return searched_pod_names
+
     def _get_pods_by_release_name_in_pod_name(self, api_instance, pod_list):
         all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
         pod_list = [pod for pod in all_namespaced_pods

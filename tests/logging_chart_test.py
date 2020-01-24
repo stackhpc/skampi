@@ -151,17 +151,56 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
 @pytest.mark.quarantine
 @pytest.mark.chart_deploy
 def test_elastic_config_applied(logging_chart_deployment, test_namespace):
-    """ Test that the ilm policy has been applied"""
-    pods = logging_chart_deployment.get_pods()
-    pods = [pod.to_dict() for pod in pods]
-    pod_names = [pod['metadata']['name'] for pod in pods]
-    elastic_pod_name = [pod_name for pod_name in pod_names if 'elastic-lo' in pod_name][0]
+    """ Test that the elastic config has been applied"""
+
+    elastic_pod_name = logging_chart_deployment.search_pod_name('elastic-logging')[0]
+
+    # ilm
     command_str = 'curl -s  -X GET http://0.0.0.0:9200/_ilm/policy/ska_ilm_policy'
     resp = logging_chart_deployment.pod_exec_bash(elastic_pod_name, command_str)
     resp = resp.replace("'", '"')
     logging.info(resp)
     resp_json = json.loads(resp)
     assert 'ska_ilm_policy' in resp_json
+
+    # pipeline parse
+    log_string = ("1|2020-01-14T08:24:54.560513Z|DEBUG|thread_id_123|"
+                  "demo.stdout.logproducer|logproducer.py#1|tango-device:my/dev/name|"
+                  "A log line from stdout.")
+    doc = {"docs": [{"_source": {"log": log_string}}]}
+    command_str = ("curl -s  -X POST http://0.0.0.0:9200/"
+                   "_ingest/pipeline/ska_log_parsing_pipeline/_simulate "
+                   "-H 'Content-Type: application/json' "
+                   "-d '{}' ").format(json.dumps(doc))
+    resp = logging_chart_deployment.pod_exec_bash(elastic_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    logging.info(resp)
+    res_json = json.loads(resp)
+    source = res_json["docs"][0]['doc']['_source']
+    assert source['ska_line_loc'] == "logproducer.py#1"
+    assert source['ska_function'] == "demo.stdout.logproducer"
+    assert source['ska_version'] == "1"
+    assert source['ska_log_timestamp'] == "2020-01-14T08:24:54.560513Z"
+    assert source['ska_tags'] == "tango-device:my/dev/name"
+    assert source['ska_severity'] == "DEBUG"
+    assert source['ska_log_message'] == "A log line from stdout."
+    assert source['ska_thread_id'] == "thread_id_123"
+
+
+@pytest.mark.chart_deploy
+def test_kibana_is_up(logging_chart_deployment):
+    """Check that Kibana is up"""
+    kibana_pod_name = logging_chart_deployment.search_pod_name('kibana-deployment')[0]
+    BASE_PATH = "/kibana"
+    command_str = ('curl -s  -X GET '
+                   'http://0.0.0.0:5601{}/api/spaces/space').format(BASE_PATH)
+
+    resp = logging_chart_deployment.pod_exec_bash(kibana_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    resp = resp.replace("True", "true")
+    logging.info(resp)
+    assert len(json.loads(resp)) > 0
+
 
 def _get_elastic_svc_name(logging_chart_deployment):
     elastic_svc_name = [svc.metadata.name for svc in logging_chart_deployment.get_services() if
