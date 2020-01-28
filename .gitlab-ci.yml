@@ -18,6 +18,8 @@ before_script:
 
 .add_kubernetes_hosts_entry: &add_kubernetes_hosts_entry |-
   grep -qxF "192.168.93.47   kubernetes.engageska-portugal.pt" /etc/hosts || echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
+  env
+  cat /etc/hosts
 
 helm-lint:
   stage: static_analysis
@@ -83,8 +85,6 @@ chart-pytest:
     - *pip_install_test_requirements
     - *add_kubernetes_hosts_entry
   script:
-    - env
-    - cat /etc/hosts
     - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] && true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
@@ -108,8 +108,6 @@ chart-pytest-quarantine:
     - *pip_install_test_requirements
     - *add_kubernetes_hosts_entry
   script:
-    - env
-    - cat /etc/hosts
     - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
