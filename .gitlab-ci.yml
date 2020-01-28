@@ -100,7 +100,7 @@ chart-pytest-quarantine:
   allow_failure: true
   before_script:
     - *pip_install_test_requirements
-    - echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
+    - grep -qxF "192.168.93.47   kubernetes.engageska-portugal.pt" /etc/hosts || echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
   script:
     - env
     - cat /etc/hosts
