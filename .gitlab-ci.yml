@@ -16,6 +16,9 @@ before_script:
 .pip_install_test_requirements: &pip_install_test_requirements |-
   pip3 install -r test-requirements.txt
 
+.add_kubernetes_hosts_entry: &add_kubernetes_hosts_entry |-
+  grep -qxF "192.168.93.47   kubernetes.engageska-portugal.pt" /etc/hosts || echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
+
 helm-lint:
   stage: static_analysis
   tags:
@@ -78,7 +81,7 @@ chart-pytest:
   allow_failure: false
   before_script:
     - *pip_install_test_requirements
-    - grep -qxF "192.168.93.47   kubernetes.engageska-portugal.pt" /etc/hosts || echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
+    - *add_kubernetes_hosts_entry
   script:
     - env
     - cat /etc/hosts
@@ -103,7 +106,7 @@ chart-pytest-quarantine:
   allow_failure: true
   before_script:
     - *pip_install_test_requirements
-    - grep -qxF "192.168.93.47   kubernetes.engageska-portugal.pt" /etc/hosts || echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
+    - *add_kubernetes_hosts_entry
   script:
     - env
     - cat /etc/hosts
