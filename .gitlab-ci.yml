@@ -12,6 +12,7 @@ in-cluster-problem:
     - docker-executor
   before_script:
     - kubectl create ns tmp
+    - echo "192.168.93.47   kubernetes.engageska-portugal.pt" >> /etc/hosts
   script:
     - kubectl run -n tmp tmp-pod --restart=Never --image=busybox --wait -- /bin/sh -c 'sleep 300'
     - kubectl exec -n tmp tmp-pod -- /bin/sh -c 'uname -r && ps aux'
