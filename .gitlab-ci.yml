@@ -102,6 +102,7 @@ chart-pytest-quarantine:
     - *pip_install_test_requirements
   script:
     - env
+    - cat /etc/hosts
     - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
