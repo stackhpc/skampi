@@ -148,7 +148,6 @@ def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_d
     assert result['hits']['total']['value']
 
 
-@pytest.mark.quarantine
 @pytest.mark.chart_deploy
 def test_elastic_config_applied(logging_chart_deployment, test_namespace):
     """ Test that the elastic config has been applied"""
