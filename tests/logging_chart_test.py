@@ -123,7 +123,6 @@ def elastic_svc_proxy(logging_chart_deployment, test_namespace):
     proxy_proc.kill()
 
 
-@pytest.mark.quarantine
 @pytest.mark.chart_deploy
 @pytest.mark.usefixtures("elastic_svc_proxy")
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
@@ -186,7 +185,6 @@ def test_elastic_config_applied(logging_chart_deployment, test_namespace):
     assert source['ska_thread_id'] == "thread_id_123"
 
 
-@pytest.mark.quarantine
 @pytest.mark.chart_deploy
 def test_kibana_is_up(logging_chart_deployment):
     """Check that Kibana is up"""
