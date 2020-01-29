@@ -24,6 +24,8 @@ class TestLoggingChartTemplates:
         resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
 
         assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
+        assert resources[0]['kind'] == 'PersistentVolume'
+        assert resources[0]['metadata']['labels']['namespace'] == 'ci'
 
     def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
         elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
@@ -79,7 +81,7 @@ class TestLoggingChartTemplates:
 
         assert elastic_pvc['spec']['selector']['matchLabels'] == expected_matchlabels
 
-    def test_elastic_ilm_chart_config(self):
+    def test_elastic_ilm_chart_yaml(self):
         """Check that the values.yaml is applied as expected"""
         template = self.chart.templates['elastic-config-map.yaml']
         elastic_cm = parse_yaml_str(template)[0]
@@ -126,26 +128,14 @@ def elastic_svc_proxy(logging_chart_deployment, test_namespace):
 @pytest.mark.chart_deploy
 @pytest.mark.usefixtures("elastic_svc_proxy")
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
-    # act:
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
 
-    # fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
-    # _wait_until_fluentd_ingests_echoserver_logs(
-    #     fluentd_daemonset_name, datetime.now(), test_namespace)
-
-    # Retry to give the log time to arrive
-    for i in range(1,30):
-        logging.info(f"Trying {i}/30")
-
+    def _wait_for_elastic_hits():
         result = _query_elasticsearch_for_log(expected_log)
-        if result['hits']['total']['value'] == 0:
-            sleep(20)
-            continue
-        else:
-            break
-    assert result['hits']['total']['value']
+        return result['hits']['total']['value'] != 0
 
+    wait_until(_wait_for_elastic_hits, retry_timeout=300)
 
 @pytest.mark.chart_deploy
 def test_elastic_config_applied(logging_chart_deployment, test_namespace):
@@ -186,8 +176,8 @@ def test_elastic_config_applied(logging_chart_deployment, test_namespace):
 
 
 @pytest.mark.chart_deploy
-def test_kibana_is_up(logging_chart_deployment):
-    """Check that Kibana is up"""
+def test_kibana_is_up_with_correct_base_path(logging_chart_deployment):
+    """Check that Kibana is up and base path is as expected"""
     kibana_pod_name = logging_chart_deployment.search_pod_name('kibana-deployment')[0]
     BASE_PATH = "/kibana"
     command_str = ('curl -s  -X GET '
