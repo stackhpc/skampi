@@ -24,8 +24,6 @@ class TestLoggingChartTemplates:
         resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
 
         assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
-        assert resources[0]['kind'] == 'PersistentVolume'
-        assert resources[0]['metadata']['labels']['namespace'] == 'ci'
 
     def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
         elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
