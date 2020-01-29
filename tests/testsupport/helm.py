@@ -63,7 +63,18 @@ class ChartDeployment(object):
 
     def delete(self):
         assert self.release_name is not None
+        api_instance = self._k8s_api.CoreV1Api()
+        p_volumes = self._get_persistent_volume_names(api_instance)
+        logging.info("Persistent Volumes to delete: %s", p_volumes)
+
         self._helm_adaptor.delete(self.release_name)
+
+        for pv in p_volumes:
+            # Make double sure we only delete PVs in our release
+            if self.release_name in pv:
+                api_instance.delete_persistent_volume(pv)
+                logging.info("Deleted PV: %s", pv)
+
 
     def pod_exec_bash(self, pod_name, command_str):
         """Execute a command on the pod commandline using bash
@@ -137,6 +148,15 @@ class ChartDeployment(object):
     def _get_pods_by_pod_name(self, api_instance, pod_name):
         return api_instance.list_namespaced_pod(self._helm_adaptor.namespace,
                                                 field_selector="metadata.name={}".format(pod_name)).items
+
+    def _get_persistent_volume_names(self, api_instance):
+        ns = self._helm_adaptor.namespace
+        pvcs = api_instance.list_namespaced_persistent_volume_claim(namespace=ns)
+        pvcs = pvcs.to_dict()
+        p_volumes = []
+        if 'items' in pvcs:
+            p_volumes = [i['spec']['volume_name'] for i in pvcs['items']]
+        return p_volumes
 
     def is_running(self, pod_name):
         pod_list = self.get_pods(pod_name)
