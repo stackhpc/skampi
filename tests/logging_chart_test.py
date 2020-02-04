@@ -35,7 +35,9 @@ def throttled_logging_chart(request, helm_adaptor):
 @pytest.fixture(scope="class")
 def logging_chart_deployment(helm_adaptor, k8s_api):
     logging.info("+++ Deploying logging chart.")
-    chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
+    throttle_settings = {'fluentd.logging_rate_throttle.enabled': 'false'}
+    chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api,
+                                       values=throttle_settings)
     yield chart_deployment
     logging.info("+++ Deleting logging chart release.")
     chart_deployment.delete()
