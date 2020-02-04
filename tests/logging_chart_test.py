@@ -274,7 +274,7 @@ class TestThrottlingLoggingDeployment(SearchElasticMixin):
 
         def _wait_for_elastic_hits():
             result = self.query_elasticsearch_for_log(logging_chart_throttled_deployment,
-                                                      '(rate exceeded group_key) AND (flood-logs)')
+                                                      '(rate exceeded group_key)')
             return result['hits']['total']['value'] != 0
 
         wait_until(_wait_for_elastic_hits, retry_timeout=500)
