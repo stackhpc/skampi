@@ -4,10 +4,11 @@ import random
 import string
 import subprocess
 import logging
+import time
 
 
 class HelmTestAdaptor(object):
-    HELM_TEMPLATE_CMD = "helm template --namespace {} --name {} -x templates/{} charts/{}"
+    HELM_TEMPLATE_CMD = "helm template {} --namespace {} --name {} -x templates/{} charts/{}"
     HELM_DELETE_CMD = "helm delete {} --purge"
     HELM_INSTALL_CMD = "helm install charts/{} --namespace {} --wait {}"
 
@@ -24,8 +25,12 @@ class HelmTestAdaptor(object):
         cmd = self._wrap_tiller(self.HELM_DELETE_CMD.format(helm_release))
         return self._run_subprocess(cmd.split())
 
-    def template(self, chart_name, release_name, template):
-        cmd = self.HELM_TEMPLATE_CMD.format(self.namespace, release_name, template, chart_name)
+    def template(self, chart_name, release_name, template, set_flag_values={}):
+        set_flag = ''
+        if set_flag_values:
+            set_flag = self.create_set_cli_flag_from(set_flag_values)
+        cmd = self.HELM_TEMPLATE_CMD.format(set_flag, self.namespace, release_name,
+                                            template, chart_name)
         return self._run_subprocess(cmd.split())
 
     def _wrap_tiller(self, helm_cmd):
@@ -46,11 +51,18 @@ class HelmTestAdaptor(object):
         deploy_cmd = (HELM_TILLER_PREFIX + helm_cmd)
         return deploy_cmd
 
+    @staticmethod
+    def create_set_cli_flag_from(values):
+        chart_values = [f"{key}={value}" for key, value in values.items()]
+        set_flag = "--set={}".format(",".join(chart_values))
+        return set_flag
+
 
 class ChartDeployment(object):
     def __init__(self, chart, helm_adaptor, k8s_api, values={}):
         self._helm_adaptor = helm_adaptor
         self._k8s_api = k8s_api
+        self.additional_pods = []
 
         try:
             set_flag = ChartDeployment.create_set_cli_flag_from(values)
@@ -67,6 +79,10 @@ class ChartDeployment(object):
         p_volumes = self._get_persistent_volume_names(api_instance)
         logging.info("Persistent Volumes to delete: %s", p_volumes)
 
+        for pod_name in self.additional_pods:
+            logging.info("Deleting additional pod: %s", pod_name)
+            api_instance.delete_namespaced_pod(pod_name, self._helm_adaptor.namespace)
+
         self._helm_adaptor.delete(self.release_name)
 
         for pv in p_volumes:
@@ -74,7 +90,6 @@ class ChartDeployment(object):
             if self.release_name in pv:
                 api_instance.delete_persistent_volume(pv)
                 logging.info("Deleted PV: %s", pv)
-
 
     def pod_exec_bash(self, pod_name, command_str):
         """Execute a command on the pod commandline using bash
@@ -97,7 +112,6 @@ class ChartDeployment(object):
         logging.info(cmd)
         res = self._helm_adaptor._run_subprocess(cmd)
         return res
-
 
     def get_pods(self, pod_name=None):
         api_instance = self._k8s_api.CoreV1Api()
@@ -133,6 +147,55 @@ class ChartDeployment(object):
         all_pod_names = [pod['metadata']['name'] for pod in pods]
         searched_pod_names = [pod_name for pod_name in all_pod_names if term in pod_name]
         return searched_pod_names
+
+    def launch_pod_manifest(self, manifest):
+        """Starts a pod manifest in the namespace and waits for the status != Pending
+        Helm does not know about this pod, so we delete it manually before the chart
+        itself is deleted
+
+        Parameters
+        ----------
+        launch_pod_manifest : dict
+            The manifest dictioenary:
+            E.g
+            {
+                'apiVersion': 'v1',
+                'kind': 'Pod',
+                'metadata': {
+                    'name': 'flood-logs'
+                },
+                'spec': {
+                    'containers': [{
+                        'image': 'alpine:latest',
+                        'name': 'flood-logs'
+                    }]
+                }
+            }
+
+        Returns
+        -------
+        String
+            The name of the pod
+        """
+        api_instance = self._k8s_api.CoreV1Api()
+
+        assert manifest['metadata']['name'], "The manifest should have a pod name"
+        pod_name = manifest['metadata']['name']
+
+        logging.info("Launching pod: %s", pod_name)
+
+        resp = api_instance.create_namespaced_pod(body=manifest,
+                                                  namespace=self._helm_adaptor.namespace)
+        while True:
+            resp = api_instance.read_namespaced_pod(name=manifest['metadata']['name'],
+                                                    namespace=self._helm_adaptor.namespace)
+            if resp.status.phase != 'Pending':
+                break
+            time.sleep(1)
+
+        logging.info("Launced pod: %s", pod_name)
+        self.additional_pods.append(pod_name)
+        return pod_name
 
     def _get_pods_by_release_name_in_pod_name(self, api_instance, pod_list):
         all_namespaced_pods = api_instance.list_namespaced_pod(self._helm_adaptor.namespace).items
@@ -183,12 +246,13 @@ class ChartDeployment(object):
 
 class HelmChart(object):
 
-    def __init__(self, name, helm_adaptor):
+    def __init__(self, name, helm_adaptor, set_flag_values={}):
         self.name = name
         self.templates_dir = "charts/{}/templates".format(self.name)
         self._helm_adaptor = helm_adaptor
         self._release_name_stub = self.generate_release_name()
         self._rendered_templates = None
+        self.set_flag_values = set_flag_values
 
     @property
     def templates(self):
@@ -196,7 +260,7 @@ class HelmChart(object):
             return self._rendered_templates
 
         chart_templates = [os.path.basename(fpath) for fpath in (glob.glob("{}/*.yaml".format(self.templates_dir)))]
-        self._rendered_templates = {template: self._helm_adaptor.template(self.name, self._release_name_stub, template)
+        self._rendered_templates = {template: self._helm_adaptor.template(self.name, self._release_name_stub, template, set_flag_values=self.set_flag_values)
                                     for template in
                                     chart_templates}
         return self._rendered_templates
