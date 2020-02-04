@@ -72,7 +72,8 @@ class ChartDeployment(object):
             self.chart_name = chart
             self.release_name = self._parse_release_name_from(stdout)
         except subprocess.CalledProcessError as e:
-            logging.debug("CalledProcessError output: %s", e.output)
+            logging.error("CalledProcessError cmd: %s", e.cmd)
+            logging.error("CalledProcessError output: %s", e.output)
             logging.error("CalledProcessError stderr: %s", e.stderr)
             logging.error("CalledProcessError stdout: %s", e.stdout)
             raise
