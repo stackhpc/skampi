@@ -2,16 +2,73 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-display: ":0"
-xauthority: "~/.Xauthority"
-
-oet:
+ssh:
   enabled: true
+  nodePort: 30022
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
     image: oet-ssh
-    tag: 0.2.9
+    tag: 0.3.0
     pullPolicy: IfNotPresent
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+
+itango:
+  enabled: false
+  nodePort: 30023
+  image:
+    registry: nexus.engageska-portugal.pt/ska-telescope
+    image: oet-ssh
+    tag: 0.3.0
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+
+rest:
+  enabled: true
+  image:
+    registry: nexus.engageska-portugal.pt/ska-telescope
+    image: oet
+    tag: 0.3.0
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
 
 nodeSelector: {}
 
