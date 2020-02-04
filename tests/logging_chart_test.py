@@ -11,6 +11,12 @@ from tests.testsupport.util import wait_until, parse_yaml_str
 
 @pytest.fixture(scope="class")
 def logging_chart(request, helm_adaptor):
+    throttle_settings = {
+        'fluentd.logging_rate_throttle.enabled': 'false',
+        'fluentd.logging_rate_throttle.group_bucket_period_s': '1',
+        'fluentd.logging_rate_throttle.group_bucket_limit': '20',
+        'fluentd.logging_rate_throttle.group_reset_rate_s': '5'
+    }
     request.cls.chart = HelmChart('logging', helm_adaptor)
 
 
@@ -92,6 +98,13 @@ class SearchElasticMixin:
 @pytest.mark.no_deploy
 @pytest.mark.usefixtures("logging_chart")
 class TestLoggingChartTemplates:
+
+    def test_throttling_is_disabled(self):
+        resources = parse_yaml_str(self.chart.templates['fluentd-config-map.yaml'])
+
+        assert 'group_bucket_period_s 1' not in resources[0]['data']['ska.conf']
+        assert 'group_bucket_limit 20' not in resources[0]['data']['ska.conf']
+        assert 'group_reset_rate_s 5' not in resources[0]['data']['ska.conf']
 
     def test_pvc_reclaim_policy_is_set_to_Delete(self):
         resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
