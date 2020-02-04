@@ -43,7 +43,7 @@ class HelmTestAdaptor(object):
     @staticmethod
     def _run_subprocess(shell_cmd):
         result = subprocess.run(shell_cmd, encoding="utf8", check=True,
-                                capture_output=True)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         return result.stdout
 
     @staticmethod
@@ -73,7 +73,8 @@ class ChartDeployment(object):
             self.release_name = self._parse_release_name_from(stdout)
         except subprocess.CalledProcessError as e:
             logging.debug("CalledProcessError output: %s", e.output)
-            logging.debug("CalledProcessError stderr: %s", e.stderr)
+            logging.error("CalledProcessError stderr: %s", e.stderr)
+            logging.error("CalledProcessError stdout: %s", e.stdout)
             raise
         except Exception as e:
             raise RuntimeError('!!! Failed to deploy helm chart.', e)
