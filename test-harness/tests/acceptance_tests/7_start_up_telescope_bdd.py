@@ -13,6 +13,7 @@ import pytest
 @scenario("./1.feature", "Telescope startup")
 def telescope_start():
     logging.info("Testing Telescope Startup")
+    pass
 
 @given("a telescope configuration file and a running webjive instance")
 def config_location(run_context):
