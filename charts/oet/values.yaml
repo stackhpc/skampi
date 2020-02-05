@@ -4,7 +4,7 @@
 
 ssh:
   enabled: true
-  nodePort: 30022
+  nodePort:
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
     image: oet-ssh
@@ -27,7 +27,7 @@ ssh:
 
 itango:
   enabled: false
-  nodePort: 30023
+  nodePort:
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
     image: oet-ssh
