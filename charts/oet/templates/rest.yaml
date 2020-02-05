@@ -26,6 +26,14 @@ metadata:
 binaryData:
   hello_world.py: |-
 {{ .Files.Get "data/hello_world.py" | b64enc | indent 4 }}
+  allocate.py: |-
+{{ .Files.Get "data/allocate.py" | b64enc | indent 4 }}
+  deallocate.py: |-
+{{ .Files.Get "data/deallocate.py" | b64enc | indent 4 }}
+  startup.py: |-
+{{ .Files.Get "data/startup.py" | b64enc | indent 4 }}
+  standby.py: |-
+{{ .Files.Get "data/standby.py" | b64enc | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -104,6 +112,14 @@ spec:
             items:
               - key: hello_world.py
                 path: hello_world.py
+              - key: allocate.py
+                path: allocate.py
+              - key: deallocate.py
+                path: deallocate.py
+              - key: startup.py
+                path: startup.py
+              - key: standby.py
+                path: standby.py
       resources:
   {{ toYaml .Values.rest.resources | indent 10 }}
   {{- with .Values.nodeSelector }}
