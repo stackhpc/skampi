@@ -26,7 +26,12 @@ stages:
   env
   cat /etc/hosts
 
-before_script: 
+.helm_tiller_flags: &helm_tiller_flags |-
+  HELM_TILLER_SILENT: true
+  HELM_TILLER_LOGS: true
+  HELM_TILLER_LOGS_DIR: tiller.log
+
+before_script:
   - *add_kubernetes_hosts_entry
 
 helm-lint:
@@ -91,6 +96,8 @@ chart-pytest:
   tags:
     - docker-executor
   allow_failure: true
+  variables:
+    *helm_tiller_flags
   before_script:
     - *pip_install_test_requirements
     - *add_kubernetes_hosts_entry
@@ -106,6 +113,7 @@ chart-pytest:
     paths:
     - junit-report.xml
     - pytest-logs.txt
+    - tiller.log
     reports:
       junit: junit-report.xml
 
@@ -114,6 +122,8 @@ chart-pytest-quarantine:
   tags:
     - docker-executor
   allow_failure: true
+  variables:
+    *helm_tiller_flags
   before_script:
     - *pip_install_test_requirements
     - *add_kubernetes_hosts_entry
@@ -129,6 +139,7 @@ chart-pytest-quarantine:
     paths:
       - junit-report.xml
       - pytest-logs.txt
+      - tiller.log
     reports:
       junit: junit-report.xml
 

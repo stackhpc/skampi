@@ -1,9 +1,9 @@
 import glob
+import logging
 import os
 import random
 import string
 import subprocess
-import logging
 
 
 class HelmTestAdaptor(object):
@@ -11,9 +11,10 @@ class HelmTestAdaptor(object):
     HELM_DELETE_CMD = "helm delete {} --purge"
     HELM_INSTALL_CMD = "helm install charts/{} --namespace {} --wait {}"
 
-    def __init__(self, use_tiller_plugin, test_namespace):
+    def __init__(self, use_tiller_plugin, test_namespace, env=None):
         self.use_tiller_plugin = use_tiller_plugin
         self.namespace = test_namespace
+        self._env = os.environ.copy() if env is None else os.environ.copy().update(env)
 
     def install(self, chart, cmd_args=""):
         cmd = self._wrap_tiller(self.HELM_INSTALL_CMD.format(chart, self.namespace, cmd_args))
@@ -35,11 +36,11 @@ class HelmTestAdaptor(object):
             cli_cmd = helm_cmd
         return cli_cmd
 
-    @staticmethod
-    def _run_subprocess(shell_cmd):
+    def _run_subprocess(self, shell_cmd):
         assert isinstance(shell_cmd, list)
         shell_cmd.extend(['--tiller-connection-timeout', '5'])
-        result = subprocess.run(shell_cmd, stdout=subprocess.PIPE, encoding="utf8", check=True)
+        result = subprocess.run(shell_cmd, stdout=subprocess.PIPE, encoding="utf8", check=True, env=self._env,
+                                shell=True)
         return result.stdout
 
     @staticmethod
@@ -77,7 +78,6 @@ class ChartDeployment(object):
                 api_instance.delete_persistent_volume(pv)
                 logging.info("Deleted PV: %s", pv)
 
-
     def pod_exec_bash(self, pod_name, command_str):
         """Execute a command on the pod commandline using bash
 
@@ -99,7 +99,6 @@ class ChartDeployment(object):
         logging.info(cmd)
         res = self._helm_adaptor._run_subprocess(cmd)
         return res
-
 
     def get_pods(self, pod_name=None):
         api_instance = self._k8s_api.CoreV1Api()
