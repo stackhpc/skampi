@@ -42,8 +42,9 @@ class HelmTestAdaptor(object):
 
     @staticmethod
     def _run_subprocess(shell_cmd):
-        result = subprocess.run(shell_cmd, encoding="utf8", check=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        assert isinstance(shell_cmd, list)
+        shell_cmd.extend(['--tiller-connection-timeout', '5'])
+        result = subprocess.run(shell_cmd, stdout=subprocess.PIPE, encoding="utf8", check=True)
         return result.stdout
 
     @staticmethod
@@ -60,13 +61,13 @@ class HelmTestAdaptor(object):
 
 
 class ChartDeployment(object):
-    def __init__(self, chart, helm_adaptor, k8s_api, values={}):
+    def __init__(self, chart, helm_adaptor, k8s_api, values=None):
         self._helm_adaptor = helm_adaptor
         self._k8s_api = k8s_api
         self.additional_pods = []
 
         try:
-            set_flag = ChartDeployment.create_set_cli_flag_from(values)
+            set_flag = ChartDeployment.create_set_cli_flag_from(values) if values else ""
             stdout = self._helm_adaptor.install(chart, set_flag)  # actual deployment
 
             self.chart_name = chart
