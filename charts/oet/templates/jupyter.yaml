@@ -19,6 +19,42 @@ spec:
   selector:
     app: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
 ---
+{{if .Values.jupyter.storage.enabled}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jupyter-storage-pv
+  namespace: {{ .Release.Namespace }}
+  labels:
+    type: jupyter_storage
+    app: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
+spec:
+  storageClassName: jupyter
+  capacity:
+    storage: {{ .Values.jupyter.storage.capacity }}
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "{{ .Values.jupyter.storage.hostPath }}"
+  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jupyter-storage-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    type: jupyter_storage
+    app: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
+spec:
+  storageClassName: jupyter
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.jupyter.storage.capacity }}
+{{end}}
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -43,6 +79,10 @@ spec:
         release: {{ .Release.Name }}
         heritage: {{ .Release.Service }}
     spec:
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: jupyter-storage-pvc
       initContainers:
       - name: check-databaseds-ready
         image: "{{ .Values.jupyter.image.registry }}/{{ .Values.jupyter.image.image }}:{{ .Values.jupyter.image.tag }}"
@@ -63,7 +103,9 @@ spec:
         env:
           - name: TANGO_HOST
             value: databaseds-tango-base-{{ .Release.Name }}:10000
-        restartPolicy: Always
+        volumeMounts:
+          - name: storage
+            mountPath: /app/jupyter_storage
         readinessProbe:
           tcpSocket:
             port: 8888
@@ -80,8 +122,9 @@ spec:
           timeoutSeconds: {{ .Values.jupyter.livenessProbe.timeoutSeconds }}
           successThreshold: {{ .Values.jupyter.livenessProbe.successThreshold }}
           failureThreshold: {{ .Values.jupyter.livenessProbe.failureThreshold }}
+      restartPolicy: Always
       resources:
-  {{ toYaml .Values.jupyter.resources | indent 10 }}
+  {{ toYaml .Values.rest.resources | indent 10 }}
   {{- with .Values.nodeSelector }}
 nodeSelector:
   {{ toYaml . | indent 8 }}
