@@ -26,9 +26,9 @@ stages:
   env
   cat /etc/hosts
 
-.helm_tiller_flags: &helm_tiller_flags |-
-  HELM_TILLER_SILENT: true
-  HELM_TILLER_LOGS: true
+.helm_tiller_flags: &helm_tiller_flags
+  HELM_TILLER_SILENT: 'true'
+  HELM_TILLER_LOGS: 'true'
   HELM_TILLER_LOGS_DIR: tiller.log
 
 before_script:
