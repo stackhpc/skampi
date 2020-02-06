@@ -73,6 +73,10 @@ rest:
 jupyter:
   enabled: true
   nodePort:
+  storage:
+    enabled: true
+    hostPath: /home/ubuntu/skampi/build/jupyter/
+    capacity: 0.1G
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
     image: oet-jupyter
