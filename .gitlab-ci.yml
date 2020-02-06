@@ -96,7 +96,7 @@ chart-pytest:
     - *add_kubernetes_hosts_entry
   script:
     - helm tiller run -- helm version
-    # - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
+    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
   after_script:
     - helm tiller run -- helm list --failed
     - helm tiller run -- bash -c 'helm list --short --failed  --namespace ci-$CI_JOB_ID | xargs -I{} helm delete --purge {}'
@@ -124,7 +124,7 @@ chart-pytest-quarantine:
   script:
     - helm tiller run -- helm version
     - helm tiller run -- helm list
-    # - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
+    - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
   after_script:
     - helm tiller run -- helm list --failed
     - helm tiller run -- bash -c 'helm list --short --failed  --namespace ci-$CI_JOB_ID | xargs -I{} helm delete --purge {}'
