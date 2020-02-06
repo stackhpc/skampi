@@ -56,7 +56,7 @@ spec:
     spec:
       initContainers:
       - name: check-databaseds-ready
-        image: "{{ .Values.rest.image.registry }}/{{ .Values.rest.image.image }}:{{ .Values.rest.image.tag }}"
+        image: "{{ .Values.ssh.image.registry }}/{{ .Values.ssh.image.image }}:{{ .Values.ssh.image.tag }}"
         command:
           - /usr/local/bin/wait-for-it.sh
           - databaseds-tango-base-{{ .Release.Name }}:10000
@@ -85,19 +85,19 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 22
-          initialDelaySeconds: {{ .Values.rest.readinessProbe.initialDelaySeconds }}
-          periodSeconds: {{ .Values.rest.readinessProbe.periodSeconds }}
-          timeoutSeconds: {{ .Values.rest.readinessProbe.timeoutSeconds }}
-          successThreshold: {{ .Values.rest.readinessProbe.successThreshold }}
-          failureThreshold: {{ .Values.rest.readinessProbe.failureThreshold }}
+          initialDelaySeconds: {{ .Values.ssh.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.ssh.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.ssh.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.ssh.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.ssh.readinessProbe.failureThreshold }}
         livenessProbe:
           tcpSocket:
             port: 22
-          initialDelaySeconds: {{ .Values.rest.livenessProbe.initialDelaySeconds }}
-          periodSeconds: {{ .Values.rest.livenessProbe.periodSeconds }}
-          timeoutSeconds: {{ .Values.rest.livenessProbe.timeoutSeconds }}
-          successThreshold: {{ .Values.rest.livenessProbe.successThreshold }}
-          failureThreshold: {{ .Values.rest.livenessProbe.failureThreshold }}
+          initialDelaySeconds: {{ .Values.ssh.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.ssh.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.ssh.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.ssh.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.ssh.livenessProbe.failureThreshold }}
       volumes:
         - name: ssh-configmap-volume
           configMap:
@@ -108,7 +108,7 @@ spec:
             - key: profile
               path: .profile
       resources:
-  {{ toYaml .Values.rest.resources | indent 10 }}
+  {{ toYaml .Values.ssh.resources | indent 10 }}
   {{- with .Values.nodeSelector }}
 nodeSelector:
   {{ toYaml . | indent 8 }}
