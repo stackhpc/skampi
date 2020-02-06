@@ -56,6 +56,7 @@ spec:
         release: {{ .Release.Name }}
         heritage: {{ .Release.Service }}
     spec:
+      restartPolicy: Always
       initContainers:
       - name: check-databaseds-ready
         image: "{{ .Values.rest.image.registry }}/{{ .Values.rest.image.image }}:{{ .Values.rest.image.tag }}"
@@ -80,7 +81,6 @@ spec:
           - name: itango-configmap-volume
             mountPath: /etc/environment
             subPath: environment
-        restartPolicy: Always
         readinessProbe:
           tcpSocket:
             port: 22

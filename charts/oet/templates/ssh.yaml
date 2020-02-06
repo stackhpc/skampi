@@ -54,6 +54,7 @@ spec:
         release: {{ .Release.Name }}
         heritage: {{ .Release.Service }}
     spec:
+      restartPolicy: Always
       initContainers:
       - name: check-databaseds-ready
         image: "{{ .Values.ssh.image.registry }}/{{ .Values.ssh.image.image }}:{{ .Values.ssh.image.tag }}"
@@ -81,7 +82,6 @@ spec:
           - name: ssh-configmap-volume
             mountPath: /etc/environment
             subPath: environment
-        restartPolicy: Always
         readinessProbe:
           tcpSocket:
             port: 22
