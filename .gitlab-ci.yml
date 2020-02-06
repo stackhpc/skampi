@@ -96,7 +96,9 @@ chart-pytest:
     - *add_kubernetes_hosts_entry
   script:
     - helm tiller run -- helm version
-    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
+    - helm tiller run -- helm list
+    - helm tiller run my-tiller-namespace -- helm list
+    # - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
@@ -120,7 +122,7 @@ chart-pytest-quarantine:
     - *add_kubernetes_hosts_entry
   script:
     - helm tiller run -- helm version
-    - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
+    # - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
   environment:
