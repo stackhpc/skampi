@@ -98,7 +98,7 @@ chart-pytest:
     - helm tiller run -- helm version
     - helm tiller run -- helm list
     - helm tiller run -- helm list --failed
-    - helm tiller run -- helm ls --failed --short | xargs -I{} echo "Will delete, {}"
+    - helm tiller run -- bash -c 'helm list --short --failed | xargs -I{} echo "Will delete, {}"'
     # - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
   after_script:
     - kubectl delete namespace ci-$CI_JOB_ID || true
