@@ -108,11 +108,6 @@ class TestLoggingChartTemplates:
         assert 'group_bucket_limit 20' not in resources[0]['data']['ska.conf']
         assert 'group_reset_rate_s 5' not in resources[0]['data']['ska.conf']
 
-    def test_pvc_reclaim_policy_is_set_to_Delete(self):
-        resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
-
-        assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
-
     def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
         elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
 
@@ -154,18 +149,6 @@ class TestLoggingChartTemplates:
 
         for env_var in expected_env_vars:
             assert env_var in env_vars
-
-    def test_elastic_pvc_has_label_selector_to_match_pv_app_and_release(self):
-        elastic_pv, elastic_pvc = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
-        elastic_pv_app_label = elastic_pv['metadata']['labels']['app']
-        elastic_pv_release_label = elastic_pv['metadata']['labels']['release']
-
-        expected_matchlabels = {
-            "app": elastic_pv_app_label,
-            "release": elastic_pv_release_label
-        }
-
-        assert elastic_pvc['spec']['selector']['matchLabels'] == expected_matchlabels
 
     def test_elastic_ilm_chart_yaml(self):
         """Check that the values.yaml is applied as expected"""
