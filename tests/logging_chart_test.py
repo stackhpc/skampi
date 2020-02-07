@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import json
 from datetime import datetime
 from time import sleep
 
@@ -19,10 +20,6 @@ def logging_chart(request, helm_adaptor):
 @pytest.mark.no_deploy
 @pytest.mark.usefixtures("logging_chart")
 class TestLoggingChartTemplates:
-    def test_pvc_reclaim_policy_is_set_to_Delete(self):
-        resources = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
-
-        assert resources[0]['spec']['persistentVolumeReclaimPolicy'] == 'Delete'
 
     def test_elastic_service_is_exposed_on_port_9200_for_all_k8s_nodes(self):
         elastic_svc = parse_yaml_str(self.chart.templates['elastic.yaml'])[1]
@@ -34,11 +31,6 @@ class TestLoggingChartTemplates:
 
         assert elastic_svc['spec']['type'] == 'NodePort'
         assert expected_portmapping in elastic_svc['spec']['ports']
-
-    def test_elastic_curator_set_to_run_once_every_hour(self):
-        curator_job = parse_yaml_str(self.chart.templates['elastic_curator.yaml']).pop()
-
-        assert curator_job['spec']['schedule'] == '0 1 * * *'
 
     def test_fluentd_is_authorised_to_read_pods_and_namespaces_cluster_wide(self):
         serviceaccount, clusterrole, clusterrolebinding = parse_yaml_str(
@@ -71,23 +63,26 @@ class TestLoggingChartTemplates:
         for env_var in expected_env_vars:
             assert env_var in env_vars
 
-    def test_elastic_pvc_has_label_selector_to_match_pv_app_and_release(self):
-        elastic_pv, elastic_pvc = parse_yaml_str(self.chart.templates['elastic-pv.yaml'])
-        elastic_pv_app_label = elastic_pv['metadata']['labels']['app']
-        elastic_pv_release_label = elastic_pv['metadata']['labels']['release']
-
-        expected_matchlabels = {
-            "app": elastic_pv_app_label,
-            "release": elastic_pv_release_label
-        }
-
-        assert elastic_pvc['spec']['selector']['matchLabels'] == expected_matchlabels
+    def test_elastic_ilm_chart_yaml(self):
+        """Check that the values.yaml is applied as expected"""
+        template = self.chart.templates['elastic-config-map.yaml']
+        elastic_cm = parse_yaml_str(template)[0]
+        assert 'ska_ilm_policy.json' in elastic_cm['data']
+        ska_ilm_policy = json.loads(elastic_cm['data']['ska_ilm_policy.json'])
+        ska_ilm_policy_phases = ska_ilm_policy['policy']['phases']
+        assert ska_ilm_policy_phases['hot']['actions']['rollover']['max_size'] == '1gb'
+        assert ska_ilm_policy_phases['hot']['actions']['rollover']['max_age'] == '1d'
+        assert ska_ilm_policy_phases['delete']['min_age'] == '1d'
 
 
 @pytest.fixture(scope="module")
 def logging_chart_deployment(helm_adaptor, k8s_api):
     logging.info("+++ Deploying logging chart.")
-    chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api)
+    chart_values = {
+        "elastic.use_pv": "false"
+    }
+
+    chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api, values=chart_values)
     yield chart_deployment
     logging.info("+++ Deleting logging chart release.")
     chart_deployment.delete()
@@ -116,22 +111,70 @@ def elastic_svc_proxy(logging_chart_deployment, test_namespace):
     proxy_proc.kill()
 
 
-@pytest.mark.quarantine
 @pytest.mark.chart_deploy
+@pytest.mark.quarantine
 @pytest.mark.usefixtures("elastic_svc_proxy")
 def test_fluentd_ingests_logs_from_pod_stdout_into_elasticsearch(logging_chart_deployment, echoserver, test_namespace):
-    # act:
     expected_log = "simple were so well compounded"
     echoserver.print_to_stdout(expected_log)
-    # TODO solve _wait_until_fluentd_ingests_echoserver_logs for journald-fluentd integration
-    sleep(80) # not ideal because this varies with load
-    # fluentd_daemonset_name = "daemonset/fluentd-logging-{}".format(logging_chart_deployment.release_name)
-    # _wait_until_fluentd_ingests_echoserver_logs(
-    #     fluentd_daemonset_name, datetime.now(), test_namespace)
 
-    # assert:
-    result = _query_elasticsearch_for_log(expected_log)
-    assert len(result['hits']['hits']) > 0
+    def _wait_for_elastic_hits():
+        result = _query_elasticsearch_for_log(expected_log)
+        return result['hits']['total']['value'] != 0
+
+    wait_until(_wait_for_elastic_hits, retry_timeout=500)
+
+@pytest.mark.chart_deploy
+def test_elastic_config_applied(logging_chart_deployment, test_namespace):
+    """ Test that the elastic config has been applied"""
+
+    elastic_pod_name = logging_chart_deployment.search_pod_name('elastic-logging')[0]
+
+    # ilm
+    command_str = 'curl -s  -X GET http://0.0.0.0:9200/_ilm/policy/ska_ilm_policy'
+    resp = logging_chart_deployment.pod_exec_bash(elastic_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    logging.info(resp)
+    resp_json = json.loads(resp)
+    assert 'ska_ilm_policy' in resp_json
+
+    # pipeline parse
+    log_string = ("1|2020-01-14T08:24:54.560513Z|DEBUG|thread_id_123|"
+                  "demo.stdout.logproducer|logproducer.py#1|tango-device:my/dev/name|"
+                  "A log line from stdout.")
+    doc = {"docs": [{"_source": {"log": log_string}}]}
+    command_str = ("curl -s  -X POST http://0.0.0.0:9200/"
+                   "_ingest/pipeline/ska_log_parsing_pipeline/_simulate "
+                   "-H 'Content-Type: application/json' "
+                   "-d '{}' ").format(json.dumps(doc))
+    resp = logging_chart_deployment.pod_exec_bash(elastic_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    logging.info(resp)
+    res_json = json.loads(resp)
+    source = res_json["docs"][0]['doc']['_source']
+    assert source['ska_line_loc'] == "logproducer.py#1"
+    assert source['ska_function'] == "demo.stdout.logproducer"
+    assert source['ska_version'] == "1"
+    assert source['ska_log_timestamp'] == "2020-01-14T08:24:54.560513Z"
+    assert source['ska_tags'] == "tango-device:my/dev/name"
+    assert source['ska_severity'] == "DEBUG"
+    assert source['ska_log_message'] == "A log line from stdout."
+    assert source['ska_thread_id'] == "thread_id_123"
+
+
+@pytest.mark.chart_deploy
+def test_kibana_is_up_with_correct_base_path(logging_chart_deployment):
+    """Check that Kibana is up and base path is as expected"""
+    kibana_pod_name = logging_chart_deployment.search_pod_name('kibana-deployment')[0]
+    BASE_PATH = "/kibana"
+    command_str = ('curl -s  -X GET '
+                   'http://0.0.0.0:5601{}/api/spaces/space').format(BASE_PATH)
+
+    resp = logging_chart_deployment.pod_exec_bash(kibana_pod_name, command_str)
+    resp = resp.replace("'", '"')
+    resp = resp.replace("True", "true")
+    logging.info(resp)
+    assert len(json.loads(resp)) > 0
 
 
 def _get_elastic_svc_name(logging_chart_deployment):

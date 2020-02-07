@@ -1,9 +1,13 @@
+import sys
+
+sys.path.append('/app')
 
 from tango import DeviceProxy, DevState, CmdArgType, EventType
+from oet.domain import SKAMid, SubArray, ResourceAllocation, Dish
 from time import sleep
+from numpy import ndarray 
 
 obsState = {"IDLE" : 0}
-
 
 class resource:
 
@@ -20,6 +24,9 @@ class resource:
         if (tp == CmdArgType.DevState):
             return str(p.read_attribute(attr).value)
         else:
+            value = getattr(p,attr)
+            if isinstance(value,ndarray):
+                return tuple(value)
             return getattr(p,attr)
 
 class monitor:
@@ -34,16 +41,30 @@ class monitor:
         self.current_value = self.resource.get(self.attr)
 
     def _is_not_changed(self):
-        return (self.previous_value == self.current_value)
+        comparison = (self.previous_value == self.current_value)
+        if isinstance(comparison,ndarray):
+            return comparison.all()
+        else: return comparison
 
-    def get_value_when_changed(self,timeout=10):
+    def _wait(self,timeout=10):
         timeout = timeout
         while ( self._is_not_changed()):
             timeout -=1
-            if (timeout == 0) : return "timout"
+            if (timeout == 0) : return "timeout"
             sleep(2)
             self._update()
+        return "changed"
+
+
+    def get_value_when_changed(self,timeout=10):
+        response = self._wait(timeout)
+        if (response == "timeout"):
+            return "timeout"
         return self.current_value
+    
+    def wait_until_value_changed(self,timeout=10):
+        self._wait(timeout)
+
 
 
 
@@ -94,3 +115,18 @@ class state_checker:
 
 def wait_for(device,timeout=10):
     return state_checker(device,timeout)
+
+def take_subarray(id):
+    return pilot(id)
+
+class pilot():
+
+    def __init__(self,id):
+        self.SubArray = SubArray(id)
+    
+    def to_be_composed_out_of(self,dishes):
+        SKAMid().start_up()
+        return self.SubArray.allocate(ResourceAllocation(dishes=[Dish(x) for x in range(1,dishes+1)]))
+
+
+

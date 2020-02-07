@@ -1,3 +1,5 @@
+{{if .Values.enabled}}
+{{if .Values.non_interactive}} {{else}}
 ---
 apiVersion: v1
 kind: Service
@@ -12,11 +14,16 @@ spec:
  type: NodePort
  ports:
  - port: 2022
+   name: "ssh" 
    targetPort: 22
    protocol: TCP
+ - port: 8888
+   name: "jupyter" 
+   targetPort: 8888 
  selector:
     app: {{ .Values.app}}
     non_interactive: "{{ .Values.non_interactive}}"
+{{end}}
 
 ---
 apiVersion: v1
@@ -33,16 +40,14 @@ spec:
  volumes:
   - name: environment
     configMap:
-      name: environment-oet-oet-{{ .Release.Name }}
+      name: environment-oet-oet-{{ .Release.Name }}  {{if .Values.non_interactive}} {{else}}
   - name: testing-folder
     persistentVolumeClaim:
-      claimName: {{ .Values.pvc }}
+      claimName: {{ .Values.pvc }}  {{end}}
  containers:
  - name: sshcheck
    image: {{ .Values.oet.image.registry }}/{{ .Values.oet.image.image }}:{{ .Values.oet.image.tag }}
-   imagePullPolicy: Always {{if .Values.non_interactive }}
-   command: ["/bin/sh"]
-   args: ["-c", "{{.Values.job}}"]  {{end}}
+   imagePullPolicy: Always 
    workingDir: {{ .Values.source_code}}
    ports:
     - containerPort: 22
@@ -52,9 +57,9 @@ spec:
    volumeMounts:
       - name: environment
         mountPath: /home/tango/.ssh
-        readOnly: true
-      - name: testing-folder
-        mountPath: {{ .Values.source_code }}
+        readOnly: true {{if .Values.non_interactive}} {{else}}
+      - name: testing-folder 
+        mountPath: {{ .Values.source_code }} {{end}}
  restartPolicy: Always
-
+ {{end}}
 
