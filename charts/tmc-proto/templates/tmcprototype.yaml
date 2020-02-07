@@ -280,6 +280,16 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ .Release.Name }}:10000
+    - name: MYSQL_ROOT_PASSWORD
+      value: "{{ .Values.tmcdb.db.rootpw }}"
+    - name: MYSQL_DATABASE
+      value: "{{ .Values.tmcdb.db.db }}"
+    - name: MYSQL_USER
+      value: "{{ .Values.tmcdb.db.user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ .Values.tmcdb.db.password }}"
+    - name: MYSQL_HOST
+      value: "staterecover-tmc-proto-{{.Release.Name}}"
 
   - name: subarraynode2
     image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
@@ -299,6 +309,17 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ .Release.Name }}:10000
+    - name: MYSQL_ROOT_PASSWORD
+      value: "{{ .Values.tmcdb.db.rootpw }}"
+    - name: MYSQL_DATABASE
+      value: "{{ .Values.tmcdb.db.db }}"
+    - name: MYSQL_USER
+      value: "{{ .Values.tmcdb.db.user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ .Values.tmcdb.db.password }}"
+    - name: MYSQL_HOST
+      value: "staterecover-tmc-proto-{{.Release.Name}}"
+
 
   - name: subarraynode3
     image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
@@ -318,6 +339,17 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ .Release.Name }}:10000
+    - name: MYSQL_ROOT_PASSWORD
+      value: "{{ .Values.tmcdb.db.rootpw }}"
+    - name: MYSQL_DATABASE
+      value: "{{ .Values.tmcdb.db.db }}"
+    - name: MYSQL_USER
+      value: "{{ .Values.tmcdb.db.user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ .Values.tmcdb.db.password }}"
+    - name: MYSQL_HOST
+      value: "staterecover-tmc-proto-{{.Release.Name}}"
+
 
   - name: centralnode
     image: "{{ .Values.tmcprototype.image.registry }}/{{ .Values.tmcprototype.image.image }}:{{ .Values.tmcprototype.image.tag }}"
