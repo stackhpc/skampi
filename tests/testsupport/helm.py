@@ -212,7 +212,6 @@ class ChartDeployment(object):
 
         wait_until(_wait_for_pod_launch, retry_timeout=500)
 
-
         logging.info("Launced pod: %s", pod_name)
         self.additional_pods.append(pod_name)
         return pod_name
