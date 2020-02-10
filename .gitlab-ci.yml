@@ -107,7 +107,7 @@ helm-template-pytest:
     - *pip_install_test_requirements
     - *add_kubernetes_hosts_entry
   script:
-    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
+    - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] && true
   after_script:
     - *teardown_k8s_test_resources
   environment:
