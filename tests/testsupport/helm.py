@@ -7,6 +7,9 @@ import logging
 import time
 
 
+from tests.testsupport.util import wait_until
+
+
 class HelmTestAdaptor(object):
     HELM_TEMPLATE_CMD = "helm template {} --namespace {} --name {} -x templates/{} charts/{}"
     HELM_DELETE_CMD = "helm delete {} --purge"
@@ -201,12 +204,14 @@ class ChartDeployment(object):
 
         resp = api_instance.create_namespaced_pod(body=manifest,
                                                   namespace=self._helm_adaptor.namespace)
-        while True:
+
+        def _wait_for_pod_launch():
             resp = api_instance.read_namespaced_pod(name=manifest['metadata']['name'],
                                                     namespace=self._helm_adaptor.namespace)
-            if resp.status.phase != 'Pending':
-                break
-            time.sleep(1)
+            return resp.status.phase != 'Pending'
+
+        wait_until(_wait_for_pod_launch, retry_timeout=500)
+
 
         logging.info("Launced pod: %s", pod_name)
         self.additional_pods.append(pod_name)
