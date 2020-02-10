@@ -2,10 +2,12 @@ image: nexus.engageska-portugal.pt/ska-docker/deploy:0.3.0
 
 variables:
   DEPLOY_ENVIRONMENT: "test"
-  CT_TEST_ENVIRONMENT: "test"
+  CT_TEST_ENVIRONMENT: "ct-test"
   KUBE_NAMESPACE: "integration"
   INGRESS_HOST: "integration.engageska-portugal.pt"
   DEPLOY_URL: "http://integration.engageska-portugal.pt/testdb"
+  HELM_TILLER_SILENT: "true"
+  HELM_TILLER_LOGS: "true"
 
 stages:
   - static_analysis
@@ -26,8 +28,14 @@ stages:
   env
   cat /etc/hosts
 
+.teardown_k8s_test_resources: &teardown_k8s_test_resources |-
+  kubectl delete all --all --namespace=ci-$CI_JOB_ID --force --grace-period=0 || true
+  kubectl delete namespace ci-$CI_JOB_ID || true
+  helm tiller run -- helm ls | grep -E '(FAILED|DELETED)' | awk '{print $1}' | xargs -I'%N' helm tiller run -- helm delete --purge \%N
+
 before_script: 
   - *add_kubernetes_hosts_entry
+  - export HELM_TILLER_LOGS_DIR=$PWD/tiller.log
 
 helm-lint:
   stage: static_analysis
@@ -73,7 +81,7 @@ helm-template-pytest:
       junit: junit-report.xml
 
 .ct-test:
-  stage: unit_test
+  stage: test
   tags:
   - docker-executor
   allow_failure: true
@@ -83,11 +91,15 @@ helm-template-pytest:
   - ct install --config ci/ct.yaml --release-label $CI_COMMIT_REF_SLUG --build-id $CI_JOB_ID --namespace ct-test-$CI_JOB_ID
   after_script:
     - kubectl delete namespace ct-test-$CI_JOB_ID || true
+  artifacts:
+    when: always
+    paths:
+    - tiller.log
   environment:
     name: $CT_TEST_ENVIRONMENT
 
 chart-pytest:
-  stage: unit_test
+  stage: test
   tags:
     - docker-executor
   allow_failure: true
@@ -98,10 +110,7 @@ chart-pytest:
     - helm tiller run -- helm version
     - pytest -m "chart_deploy and not quarantine" --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || [ "$?" == "5" ] $$ true
   after_script:
-    - helm tiller run -- helm list --failed
-    - helm tiller run -- bash -c 'helm list --short --failed  --namespace ci-$CI_JOB_ID | xargs -I{} helm delete --purge {}'
-    - helm tiller run -- helm list --failed
-    - kubectl delete namespace ci-$CI_JOB_ID || true
+    - *teardown_k8s_test_resources
   environment:
     name: $CT_TEST_ENVIRONMENT
   artifacts:
@@ -110,11 +119,12 @@ chart-pytest:
     paths:
     - junit-report.xml
     - pytest-logs.txt
+    - tiller.log
     reports:
       junit: junit-report.xml
 
 chart-pytest-quarantine:
-  stage: unit_test
+  stage: test
   tags:
     - docker-executor
   allow_failure: true
@@ -126,10 +136,7 @@ chart-pytest-quarantine:
     - helm tiller run -- helm list
     - pytest -m quarantine --use-tiller-plugin --test-namespace=ci-$CI_JOB_ID || true
   after_script:
-    - helm tiller run -- helm list --failed
-    - helm tiller run -- bash -c 'helm list --short --failed  --namespace ci-$CI_JOB_ID | xargs -I{} helm delete --purge {}'
-    - helm tiller run -- helm list --failed
-    - kubectl delete namespace ci-$CI_JOB_ID || true
+    - *teardown_k8s_test_resources
   environment:
     name: $CT_TEST_ENVIRONMENT
   artifacts:
@@ -163,6 +170,7 @@ deploy test environment:
   tags:
   - docker-executor
   script:
+  - helm tiller run -- helm version 
   - make deploy_all 
   - kubectl get all,pv,pvc,ingress -n $KUBE_NAMESPACE
   retry: 2
