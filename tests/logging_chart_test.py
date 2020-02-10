@@ -173,6 +173,7 @@ class TestLoggingChartThrottledTemplates:
         assert 'group_reset_rate_s 5' in resources[0]['data']['ska.conf']
 
 
+@pytest.mark.skip("Skipping until the cluster testing issues are resolved")
 @pytest.mark.chart_deploy
 @pytest.mark.usefixtures("logging_chart_deployment")
 class TestLoggingDeployment(SearchElasticMixin):
@@ -241,6 +242,7 @@ class TestLoggingDeployment(SearchElasticMixin):
         assert len(json.loads(resp)) > 0
 
 
+@pytest.mark.skip("Skipping until the cluster testing issues are resolved")
 @pytest.mark.chart_deploy
 @pytest.mark.usefixtures("logging_chart_throttled_deployment")
 class TestThrottlingLoggingDeployment(SearchElasticMixin):
