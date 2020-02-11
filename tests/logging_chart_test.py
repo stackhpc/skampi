@@ -37,7 +37,7 @@ def logging_chart_deployment(helm_adaptor, k8s_api):
     logging.info("+++ Deploying logging chart.")
     throttle_settings = {'fluentd.logging_rate_throttle.enabled': 'false'}
     chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api,
-                                       values=throttle_settings)
+                                       set_flag_values=throttle_settings)
     yield chart_deployment
     logging.info("+++ Deleting logging chart release.")
     chart_deployment.delete()
@@ -64,7 +64,7 @@ def logging_chart_throttled_deployment(helm_adaptor, k8s_api):
     }
 
     chart_deployment = ChartDeployment('logging', helm_adaptor, k8s_api,
-                                       values=throttle_settings)
+                                       set_flag_values=throttle_settings)
     yield chart_deployment
     logging.info("+++ Deleting throttled logging chart release.")
     chart_deployment.delete()

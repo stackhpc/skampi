@@ -71,13 +71,13 @@ class HelmTestAdaptor(object):
 
 
 class ChartDeployment(object):
-    def __init__(self, chart, helm_adaptor, k8s_api, values=None):
+    def __init__(self, chart, helm_adaptor, k8s_api, set_flag_values=None):
         self._helm_adaptor = helm_adaptor
         self._k8s_api = k8s_api
         self.additional_pods = []
 
         try:
-            set_flag = ChartDeployment.create_set_cli_flag_from(values) if values else ""
+            set_flag = self._helm_adaptor.create_set_cli_flag_from(set_flag_values) if set_flag_values else ""
             stdout = self._helm_adaptor.install(chart, set_flag)  # actual deployment
 
             self.chart_name = chart
@@ -250,12 +250,6 @@ class ChartDeployment(object):
         api_instance = self._k8s_api.CoreV1Api()
         return [svc for svc in api_instance.list_namespaced_service(self._helm_adaptor.namespace).items if
                 svc.metadata.name.endswith(self.release_name)]
-
-    @staticmethod
-    def create_set_cli_flag_from(values):
-        chart_values = [f"{key}={value}" for key, value in values.items()]
-        set_flag = "--set={}".format(",".join(chart_values))
-        return set_flag
 
     @staticmethod
     def _parse_release_name_from(stdout):
