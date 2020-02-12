@@ -64,6 +64,7 @@ data:
     TANGO_HOST=databaseds-tango-base-{{ .Release.Name }}:10000
   venv.sh: |
     export PATH="/venv/bin:${PATH}"
+    export OET_REST_URI=http://rest-{{ template "oet.name" . }}-{{ .Release.Name }}:5000/api/v1.0/procedures
 ---
 apiVersion: apps/v1
 kind: StatefulSet
