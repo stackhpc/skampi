@@ -5,11 +5,18 @@
 
 elastic:
   enabled: true
+  use_pv: true # Make use of a persistent volume
   image:
     registry: docker.elastic.co
     image: elasticsearch/elasticsearch
     tag: 7.4.2
     pullPolicy: IfNotPresent
+  ilm:
+    rollover:
+      max_size: "1gb"
+      max_age: "1d"
+    delete:
+      min_age: "1d"
 
 fluentd:
   enabled: true
@@ -19,6 +26,13 @@ fluentd:
     pullPolicy: IfNotPresent
   livenessProbe:
     enabled: true
+  logging_rate_throttle:
+    enabled: true
+    # group_reset_rate_s must be <= group_bucket_limit
+    # group_reset_rate_s must be <= group_bucket_limit / group_bucket_period_s
+    group_bucket_period_s: 60
+    group_bucket_limit: 1000
+    group_reset_rate_s: 10
 
 kibana:
   enabled: true
