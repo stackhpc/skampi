@@ -31,6 +31,7 @@ def test_allocate_resources():
 @given("A running telescope for executing observations on a subarray")
 def set_to_running():
     SKAMid().start_up()
+    sleep(1)
 
 @when("I allocate 4 dishes to subarray 1")
 def allocate_two_dishes(result):
@@ -41,6 +42,7 @@ def allocate_two_dishes(result):
 
     #wait for certain values to be changed - this is a bit of a fudge as idealy we should only watch for state
     #watch_State.wait_until_value_changed()
+    sleep(1)
     watch_receptorIDList.wait_until_value_changed()
 
     return result
@@ -52,7 +54,7 @@ def check_subarray_composition(result):
     #check that this is reflected correctly on TMC side
     assert_that(resource('ska_mid/tm_subarray_node/1').get("receptorIDList")).is_equal_to((1, 2, 3, 4))
     #check that this is reflected correctly on CSP side
-    assert_that(resource('mid_csp/elt/subarray_01').get('receptors')).is_equal_to((1, 2, 3, 4))
+    assert_that(resource('mid_csp/elt/subarray_01').get('assignedReceptors')).is_equal_to((1, 2, 3, 4))
     assert_that(resource('mid_csp/elt/master').get('receptorMembership')).is_equal_to((1, 1, 1, 1))
     #TODO need to find a better way of testing sets with sets
     #assert_that(set(resource('mid_csp/elt/master').get('availableReceptorIDs'))).is_subset_of(set((4,3)))
@@ -77,3 +79,4 @@ def teardown_function(function):
     if (resource('ska_mid/tm_subarray_node/1').get("State") == "ON"):
         SubArray(1).deallocate()
     SKAMid().standby()
+    sleep(2)
