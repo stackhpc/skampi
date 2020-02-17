@@ -6,7 +6,7 @@ BASEDIR := $(notdir $(patsubst %/,%,$(dir $(MAKEPATH))))
 THIS_HOST := $(shell (ip a 2> /dev/null || ifconfig) | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | head -n1)
 DISPLAY := $(THIS_HOST):0
 XAUTHORITYx ?= ${XAUTHORITY}
-KUBE_NAMESPACE ?= default## Kubernetes Namespace to use
+KUBE_NAMESPACE ?= integration## Kubernetes Namespace to use
 KUBE_NAMESPACE_SDP ?= $(KUBE_NAMESPACE)-sdp ## Kubernetes Namespace to use for SDP dynamic deployments
 HELM_RELEASE ?= test## Helm release name
 HELM_CHART ?= tango-base## Helm Chart to install (see ./charts)
@@ -16,6 +16,8 @@ USE_NGINX ?= false## Use NGINX as the Ingress Controller
 API_SERVER_IP ?= $(THIS_HOST)## Api server IP of k8s
 API_SERVER_PORT ?= 6443## Api server port of k8s
 EXTERNAL_IP ?= $(THIS_HOST)## For traefik installation
+CLUSTER_NAME ?= integration.cluster## For the gangway kubectl setup 
+CHART_SET ?= #for additional flags you want to set when deploying (default empty)
 
 # activate remote debugger for VSCode (ptvsd)
 REMOTE_DEBUG ?= false
@@ -31,6 +33,7 @@ REMOTE_DEBUG ?= false
 
 # include makefile targets for testing
 -include test.mk
+
 
 #
 # IMAGE_TO_TEST defines the tag of the Docker image to test
@@ -60,6 +63,7 @@ k8s_test: ## test the application on K8s
 	  rm -fr build; \
 	  kubectl cp $(KUBE_NAMESPACE)/$(TEST_RUNNER):/app/test-harness/build/ build/; \
 	  exit $$status
+
 
 
 vars: ## Display variables - pass in DISPLAY and XAUTHORITY
@@ -143,6 +147,15 @@ mkcerts:  ## Make dummy certificates for $(INGRESS_HOST) and Ingress
 		 -subj "/CN=$${CN}/O=Minikube"; \
 	else \
 	echo "SSL cert already exits in charts/webjive/data ... skipping"; \
+	fi; \
+	if [ ! -f charts/tango-base/secrets/tls.key ]; then \
+	CN=`echo "tango.rest.$(INGRESS_HOST)" | tr -d '[:space:]'`; \
+	openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 \
+	   -keyout charts/tango-base/secrets/tls.key \
+		 -out charts/tango-base/secrets/tls.crt \
+		 -subj "/CN=$${CN}/O=Minikube"; \
+	else \
+	echo "SSL cert already exits in charts/tango-base/secrets ... skipping"; \
 	fi
 
 deploy: namespace namespace_sdp mkcerts  ## deploy the helm chart
@@ -153,6 +166,7 @@ deploy: namespace namespace_sdp mkcerts  ## deploy the helm chart
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
+				 $(CHART_SET) \
 				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl apply -f -
 
 show: mkcerts  ## show the helm chart
@@ -173,17 +187,14 @@ delete: ## delete the helm chart release
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
+				 $(CHART_SET) \
 				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl delete -f -
 
 deploy_all: namespace namespace_sdp mkcerts deploy_etcd  ## deploy ALL of the helm chart
 	@for i in charts/*; do \
 	echo "*****************************  $$i ********************************"; \
 	if [ "$$i" = "charts/auth" ] ; then \
-		kubectl get all -n kube-system > /dev/null 2>&1; \
-		retval=$$?; \
-		if [ $$retval -ne 0 ]; then \
-			continue; \
-		fi; \
+		continue; \
 	fi; \
 	helm template $(helm_install_shim) $$i \
 				 --namespace $(KUBE_NAMESPACE) \
@@ -267,7 +278,7 @@ get_pods: ##lists the pods deploued for a particular namespace
 get_versions: ## lists the container images used for particular pods
 	kubectl get pods -l release=$(HELM_RELEASE) -n $(KUBE_NAMESPACE) -o jsonpath="{range .items[*]}{.metadata.name}{'\n'}{range .spec.containers[*]}{.name}{'\t'}{.image}{'\n\n'}{end}{'\n'}{end}{'\n'}"
 
-traefik: ## install the helm chart for traefik (in the kube-system namespace)
+traefik: ## install the helm chart for traefik (in the kube-system namespace). Input parameter EXTERNAL_IP (i.e. private ip of the master node).
 	@TMP=`mktemp -d`; \
 	helm fetch stable/traefik --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/traefik -n traefik0 --namespace kube-system \
@@ -279,29 +290,29 @@ delete_traefik: ## delete the helm chart for traefik
 	@TMP=`mktemp -d`; \
 	helm fetch stable/traefik --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/traefik -n traefik0 --namespace kube-system \
-		--set externalIP="$(THIS_HOST)" \
+		--set externalIP="$(EXTERNAL_IP)" \
 		| kubectl delete -n kube-system -f - && \
 		rm -rf $$TMP
 
-gangway: ## install gangway authentication for gitlab (in the kube-system namespace)
+gangway: ## install gangway authentication for gitlab (in the kube-system namespace). Input parameters: INGRESS_HOST, CLUSTER_NAME, API_SERVER_IP, API_SERVER_PORT
 	@TMP=`mktemp -d`; \
 	helm fetch stable/gangway --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/gangway -n gangway0 --namespace kube-system \
 			--values resources/gangway.yaml \
 			--set gangway.redirectURL="http://gangway.$(INGRESS_HOST)/callback" \
-			--set gangway.clusterName="$(KUBE_NAMESPACE).$(HELM_RELEASE)" 	\
+			--set gangway.clusterName="$(CLUSTER_NAME)" 	\
 			--set gangway.apiServerURL="https://$(API_SERVER_IP):$(API_SERVER_PORT)" \
 			--set ingress.hosts="{gangway.$(INGRESS_HOST)}" \
 			| kubectl apply -n kube-system -f - && 	\
 			rm -rf $$TMP 
 
-delete_gangway: ## delete install gangway authentication for gitlab
+delete_gangway: ## delete install gangway authentication for gitlab. Input parameters: INGRESS_HOST, CLUSTER_NAME, API_SERVER_IP, API_SERVER_PORT
 	@TMP=`mktemp -d`; \
 	helm fetch stable/gangway --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/gangway -n gangway0 --namespace kube-system \
 			--values resources/gangway.yaml \
 			--set gangway.redirectURL="http://gangway.$(INGRESS_HOST)/callback" \
-			--set gangway.clusterName="$(KUBE_NAMESPACE).$(HELM_RELEASE)" 	\
+			--set gangway.clusterName="$(CLUSTER_NAME)" 	\
 			--set gangway.apiServerURL="https://$(API_SERVER_IP):$(API_SERVER_PORT)" \
 			--set ingress.hosts="{gangway.$(INGRESS_HOST)}" \
 			| kubectl delete -n kube-system -f - && \
@@ -332,4 +343,20 @@ smoketest: ## check that the number of waiting containers is zero (10 attempts, 
 			exit 1; \
 		fi; \
 		n=`expr $$n - 1`; \
+	done
+
+get_status:
+	kubectl get pod,svc,deployments,pv,pvc,ingress -n $(KUBE_NAMESPACE)
+
+redeploy:
+	make delete delete_all && make deploy_all && make wait
+	
+wait:
+	pods=$$( kubectl get pods -n $(KUBE_NAMESPACE) -o=jsonpath="{range .items[*]}{.metadata.name}{' '}{end}" ) && \
+	for pod in $$pods ;  do \
+		phase=$$(kubectl get pod -n $(KUBE_NAMESPACE) $$pod -o=jsonpath='{.status.phase}'); \
+		if [ "$$phase" = "Succeeded" ]; then \
+			echo $$pod $$phase; else \
+			kubectl wait --for=condition=Ready -n $(KUBE_NAMESPACE) pod/$$pod; \
+		fi; \
 	done

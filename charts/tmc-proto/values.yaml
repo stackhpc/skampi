@@ -5,20 +5,12 @@
 display: ":0"
 xauthority: "~/.Xauthority"
 
-rsyslog:
-  enabled: true
-  image:
-    registry: registry.hub.docker.com/u/
-    image: jumanjiman/rsyslog
-    tag: latest
-    pullPolicy: IfNotPresent
-
 tmcprototype:
   enabled: true
   image:
     registry: nexus.engageska-portugal.pt/tango-example
     image: tmcprototype
-    tag: 0.1.6
+    tag: 0.1.7
     pullPolicy: IfNotPresent
 
 tmalarmhandler:
