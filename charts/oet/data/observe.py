@@ -13,13 +13,14 @@ FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 
-def main(configuration, scan_duration, subarray_id=1, process_json=True):
+def main(configuration, scan_duration, subarray_id=1, repeat=1, process_json=True):
     """
     Configure a sub-array and perform the scan.
 
     :param configuration: name of configuration file
     :param scan_duration: scan duration in seconds
     :param subarray_id: numeric subarray ID
+    :param repeat: number of times to repeat the configure/scan
     :param process_json: set to False to pass JSON directly to TMC without processing
     :return:
     """
@@ -34,11 +35,14 @@ def main(configuration, scan_duration, subarray_id=1, process_json=True):
 
     subarray = SubArray(subarray_id)
 
-    LOG.info(f'Configure subarray from CDM: {configuration}')
-    subarray.configure_from_file(configuration, with_processing=process_json)
+    for i in range(repeat):
+        LOG.info(f'Scan {i+1} of {repeat}')
 
-    LOG.info(f'Perform scan for {scan_duration}s')
-    subarray.scan(float(scan_duration))
+        LOG.info(f'Configure subarray from CDM: {configuration}')
+        subarray.configure_from_file(configuration, with_processing=process_json)
+
+        LOG.info(f'Perform scan for {scan_duration}s')
+        subarray.scan(float(scan_duration))
 
     LOG.info('End scheduling block')
     subarray.end_sb()
