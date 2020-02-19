@@ -13,10 +13,10 @@ def midcsp_subarray01():
 
 @pytest.fixture(scope="class")
 def midcsp_subarray02():
-    csp_subarray01_proxy = tango.DeviceProxy("mid_csp/elt/subarray_02")
+    csp_subarray02_proxy = tango.DeviceProxy("mid_csp/elt/subarray_02")
     return csp_subarray02_proxy
 
 @pytest.fixture(scope="class")
 def midcsp_subarray03():
-    csp_subarray01_proxy = tango.DeviceProxy("mid_csp/elt/subarray_03")
+    csp_subarray03_proxy = tango.DeviceProxy("mid_csp/elt/subarray_03")
     return csp_subarray03_proxy
