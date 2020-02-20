@@ -96,6 +96,9 @@ jupyter:
     timeoutSeconds: 1
     successThreshold: 1
     failureThreshold: 3
+  config:
+    name: this_is_a_name
+    namespace: integration
 
 # Configure Ingress
 ingress:

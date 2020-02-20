@@ -24,6 +24,15 @@ spec:
            servicePort: 8888
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.jupyter.config.name }}
+  namespace: {{ . Values.namespace}}
+data:
+{{ (tpl (.Files.Get "data/jupyter_notebook_config.json"). . ) | indent 2  }}
+
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
