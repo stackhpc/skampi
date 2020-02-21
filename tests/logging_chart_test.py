@@ -11,13 +11,10 @@ from tests.testsupport.util import wait_until, parse_yaml_str
 
 @pytest.fixture(scope="class")
 def logging_chart(request, helm_adaptor):
-    throttle_settings = {
-        'fluentd.logging_rate_throttle.enabled': 'false',
-        'fluentd.logging_rate_throttle.group_bucket_period_s': '1',
-        'fluentd.logging_rate_throttle.group_bucket_limit': '20',
-        'fluentd.logging_rate_throttle.group_reset_rate_s': '5'
+    chart_values = {
+        'demo_mode.enabled': 'true'
     }
-    request.cls.chart = HelmChart('logging', helm_adaptor)
+    request.cls.chart = HelmChart('logging', helm_adaptor, set_flag_values=chart_values)
 
 
 @pytest.fixture(scope="class")
