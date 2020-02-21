@@ -8,10 +8,15 @@ helm_is_v2 = $(strip $(shell helm version 2> /dev/null | grep SemVer:\"v2\.))
 helm_install_shim = $(if $(helm_is_v2),--name $(HELM_RELEASE),$(HELM_RELEASE))
 helm_tiller_prefix = $(if $(helm_is_v2),helm tiller run -- ,)
 
+# helm-tiller plugin config
+export HELM_TILLER_SILENT=true
+export HELM_TILLER_LOGS=true
+export HELM_TILLER_LOGS_DIR=$(PWD)/tiller.log
+
 # helm command to install a chart
 # usage: $(call helm_install_cmd,$(HELM_CHART))
-helm_install_cmd = helm install charts/$1 \
-		   	$(if helm_is_v2,--tiller-namespace $(KUBE_NAMESPACE),$(HELM_RELEASE)) \
+helm_install_cmd = helm install $(if $(helm_is_v2),,$(HELM_RELEASE)) \
+			charts/$1 \
 			--namespace="$(KUBE_NAMESPACE)" \
 			--set display="$(DISPLAY)" \
 			--set xauthority="$(XAUTHORITYx)" \
