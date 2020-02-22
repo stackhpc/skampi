@@ -47,7 +47,7 @@ ct-lint:
   script:
   - ct lint --config ci/ct.yaml --all
 
-helm-template-tests:
+.helm-template-tests:
   stage: static_analysis
   tags:
   - docker-executor
