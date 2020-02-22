@@ -25,6 +25,7 @@ def throttled_logging_chart(request, helm_adaptor):
         'fluentd.logging_rate_throttle.group_bucket_limit': '20',
         'fluentd.logging_rate_throttle.group_reset_rate_s': '5'
     }
+    throttle_settings['demo_mode.enabled'] = 'true'
     request.cls.chart = HelmChart('logging', helm_adaptor,
                                   set_flag_values=throttle_settings)
 
