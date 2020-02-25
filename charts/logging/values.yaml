@@ -2,10 +2,17 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+apm:
+  enabled: true
+  image:
+    registry: docker.elastic.co
+    image: apm/apm-server
+    tag: 7.4.2
+    pullPolicy: IfNotPresent
 
 elastic:
   enabled: true
-  use_pv: true # Make use of a persistent volume
+  use_pv: false # Make use of a persistent volume
   image:
     registry: docker.elastic.co
     image: elasticsearch/elasticsearch
