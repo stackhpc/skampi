@@ -12,16 +12,14 @@ from tests.testsupport.util import wait_until
 
 class HelmTestAdaptor(object):
     HELM_DELETE_CMD = "helm delete {} --purge"
-    HELM_INSTALL_CMD = "helm install charts/{} --namespace {} --wait {}"
 
     def __init__(self, use_tiller_plugin, test_namespace):
         self.use_tiller_plugin = use_tiller_plugin
         self.namespace = test_namespace
 
-    def install(self, chart, cmd_args=""):
-        cmd = self._wrap_tiller(self.HELM_INSTALL_CMD.format(chart, self.namespace, cmd_args))
-        cmd = cmd.split()
-        return self._run_subprocess(cmd)
+    def install(self, chart_name, cmd_args="", release_name=None):
+        cmd = f"helm install charts/{chart_name} --generate-name --namespace={self.namespace} --wait {cmd_args}"
+        return self._run_subprocess(cmd.split())
 
     def delete(self, helm_release):
         cmd = self._wrap_tiller(self.HELM_DELETE_CMD.format(helm_release))
