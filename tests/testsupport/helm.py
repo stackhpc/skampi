@@ -11,7 +11,7 @@ from tests.testsupport.util import wait_until
 
 
 class HelmTestAdaptor(object):
-    HELM_DELETE_CMD = "helm delete {} --purge"
+    HELM_DELETE_CMD = "helm delete {}"
 
     def __init__(self, use_tiller_plugin, test_namespace):
         self.use_tiller_plugin = use_tiller_plugin
