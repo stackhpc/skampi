@@ -1,0 +1,65 @@
+{{ if .Values.apm.enabled }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apm-server-{{ template "logging.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      component: apm-server
+  template:
+    metadata:
+      labels:
+        component: apm-server
+    spec:
+      containers:
+      - name: apm-server-{{ template "logging.name" . }}-{{ .Release.Name }}
+        image: "{{ .Values.apm.image.registry }}/{{ .Values.apm.image.image }}:{{ .Values.apm.image.tag }}"
+        imagePullPolicy: {{ .Values.apm.image.pullPolicy }}
+
+        ports:
+        - containerPort: 8200
+          name: http
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+
+        volumeMounts:
+        - name: apm-server-config
+          mountPath: /usr/share/apm-server/apm-server.yml
+          subPath: apm-server.yml
+          readOnly: true
+      volumes:
+      - name: apm-server-config
+        configMap:
+          name: apm-server-{{ template "logging.name" . }}-{{ .Release.Name }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: apm-server-{{ template "logging.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    service: apm-server
+spec:
+  type: NodePort
+  selector:
+    component: apm-server
+  ports:
+  - port: 8200
+    targetPort: 8200
+
+{{ end }}
