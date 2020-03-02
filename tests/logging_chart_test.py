@@ -250,6 +250,7 @@ class TestLoggingDeployment(SearchElasticMixin):
 
 @pytest.mark.chart_deploy
 @pytest.mark.usefixtures("logging_chart_throttled_deployment")
+@pytest.mark.quarantine
 class TestThrottlingLoggingDeployment(SearchElasticMixin):
 
     def test_log_throttling_happens(self, logging_chart_throttled_deployment,
