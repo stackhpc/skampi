@@ -11,7 +11,7 @@ metadata:
   name: skuid-ing-{{ template "skuid.name" . }}-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    service: skuid
+    service: skuid-{{ .Release.Namespace }}
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:

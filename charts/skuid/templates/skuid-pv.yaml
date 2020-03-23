@@ -6,7 +6,7 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: skuid-{{ template "skuid.name" . }}-{{ .Release.Name }}
+  name: skuid-pv-{{ template "skuid.name" . }}-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: skuid-{{ template "skuid.name" . }}-{{ .Release.Name }}
