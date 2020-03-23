@@ -26,11 +26,11 @@ Feature: Execute a basic observation for the MVP PI5 subarray
 	
 
 	@XTP-427 @XTP-494
-	Scenario: A2-Test, Sub-array transitions from IDLE to READY state
+	Scenario: A2-Test, Execution of Configure command on subarray
 		Given I am accessing the console interface for the OET
-		And sub-array is in IDLE state
-		When I call the configure scan execution instruction
-		Then sub-array is in READY state for which subsequent scan commands can be directed to deliver a basic imaging outcome
+		And subarray "1" is in IDLE state
+		When I call the configure command on subarray "1"
+		Then subarray "1" is in READY state providing further Scan command on subarray "1"
 			
 
 	
