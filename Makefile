@@ -380,5 +380,11 @@ dump_dashboards:
 load_dashboards:
 	kubectl exec -i pod/mongodb-webjive-test-0 -n $(KUBE_NAMESPACE) -- mongorestore --archive < webjive-dash.dump 
 	
+deploy_test_pod:
+	docker run --rm --name test_pod -d -p 2020:22 --mount src="$$(pwd)",target=/home/tango/skampi,type=bind $(IMAGE_TO_TEST)
+
+remove_test_pod:
+	docker stop test_pod
+
 get_jupyter_port:
 	@kubectl get service -l app=jupyter-oet-test -n $(KUBE_NAMESPACE)  -o jsonpath="{range .items[0]}{'Use this url:http://$(THIS_HOST):'}{.spec.ports[0].nodePort}{'\n'}{end}"
