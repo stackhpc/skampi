@@ -3,7 +3,13 @@ import json
 
 import pytest
 
-from tests.testsupport.helm import ChartDeployment
+from tests.testsupport.helm import ChartDeployment, HelmChart
+from tests.testsupport.util import parse_yaml_str
+
+
+@pytest.fixture(scope="class")
+def skuid_chart(request, helm_adaptor):
+    request.cls.chart = HelmChart("skuid", helm_adaptor, set_flag_values={})
 
 
 @pytest.fixture(scope="class")
@@ -11,8 +17,66 @@ def skuid_chart_deployment(helm_adaptor, k8s_api):
     logging.info("+++ Deploying skuid chart.")
     chart_deployment = ChartDeployment("skuid", helm_adaptor, k8s_api)
     yield chart_deployment
-    logging.info("+++ Deleting logging chart release.")
+    logging.info("+++ Deleting skuid chart release.")
     chart_deployment.delete()
+
+
+@pytest.mark.no_deploy
+@pytest.mark.usefixtures("skuid_chart")
+class TestSkuidChart:
+    def test_charts(self, skuid_chart):
+        ingress_chart = parse_yaml_str(self.chart.templates["skuid-ingress.yaml"])[0]
+        assert (
+            ingress_chart["spec"]["rules"][0]["host"]
+            == "integration.engageska-portugal.pt"
+        )
+        assert (
+            ingress_chart["spec"]["rules"][0]["http"]["paths"][0]["backend"][
+                "servicePort"
+            ]
+            == 9870
+        )
+
+        pv_chart = parse_yaml_str(self.chart.templates["skuid-pv.yaml"])
+        skuid_pv = list(filter(lambda x: x["kind"] == "PersistentVolume", pv_chart))[0]
+        skuid_pvc = list(
+            filter(lambda x: x["kind"] == "PersistentVolumeClaim", pv_chart)
+        )[0]
+        assert skuid_pv["spec"]["persistentVolumeReclaimPolicy"] == "Recycle"
+        assert skuid_pv["spec"]["capacity"]["storage"] == "100Mi"
+        assert skuid_pv["spec"]["accessModes"] == ["ReadWriteMany"]
+
+        assert skuid_pvc["spec"]["accessModes"] == ["ReadWriteMany"]
+        assert skuid_pvc["spec"]["resources"]["requests"]["storage"] == "100Mi"
+
+        squid_chart = parse_yaml_str(self.chart.templates["skuid.yaml"])
+        squid_deployment = list(
+            filter(lambda x: x["kind"] == "Deployment", squid_chart)
+        )[0]
+        squid_service = list(filter(lambda x: x["kind"] == "Service", squid_chart))[0]
+
+        envs = squid_deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+        env_names = [i["name"] for i in envs]
+        for env_setting in [
+            "CURSOR_FILE_PATH",
+            "SCAN_ID_CURSOR_FILE_PATH",
+            "SKUID_GENERATOR_ID",
+        ]:
+            assert env_setting in env_names
+
+        containers_spec = squid_deployment["spec"]["template"]["spec"]["containers"][0]
+        assert (
+            containers_spec["image"]
+            == "nexus.engageska-portugal.pt/ska-telescope/skuid:0.0.1"
+        )
+        assert containers_spec["ports"][0]["name"] == "skuid-http"
+        assert containers_spec["ports"][0]["containerPort"] == 9870
+        assert containers_spec["volumeMounts"][0]["name"] == "skuid-data"
+        assert containers_spec["volumeMounts"][0]["mountPath"] == "/data/"
+
+        assert squid_service["spec"]["type"] == "ClusterIP"
+        assert squid_service["spec"]["ports"][0]["port"] == 9870
+        assert squid_service["spec"]["ports"][0]["targetPort"] == 9870
 
 
 @pytest.mark.chart_deploy

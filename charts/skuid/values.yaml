@@ -9,6 +9,7 @@ skuid:
     tag: 0.0.1
     pullPolicy: Always # During dev
     basePath: /skuid
+  service_port: 9870
 
 ingress:
   enabled: true

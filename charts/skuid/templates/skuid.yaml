@@ -63,7 +63,7 @@ spec:
   selector:
     run: skuid-{{ .Release.Namespace }}
   ports:
-  - port: 9870
+  - port: {{ .Values.skuid.service_port }}
     targetPort: 9870
 
 {{ end }}
