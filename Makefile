@@ -20,6 +20,7 @@ CLUSTER_NAME ?= integration.cluster## For the gangway kubectl setup
 CLIENT_ID ?= 417ea12283741e0d74b22778d2dd3f5d0dcee78828c6e9a8fd5e8589025b8d2f## For the gangway kubectl setup, taken from Gitlab
 CLIENT_SECRET ?= 27a5830ca37bd1956b2a38d747a04ae9414f9f411af300493600acc7ebe6107f## For the gangway kubectl setup, taken from Gitlab
 CHART_SET ?= #for additional flags you want to set when deploying (default empty)
+VALUES ?= values.yaml# root level values files. This will override the chart values files. 
 
 # activate remote debugger for VSCode (ptvsd)
 REMOTE_DEBUG ?= false
@@ -148,7 +149,8 @@ deploy: namespace namespace_sdp mkcerts  ## deploy the helm chart
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
 				 $(CHART_SET) \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl apply -f -
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl apply -f -
 
 show: mkcerts  ## show the helm chart
 	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
@@ -158,7 +160,8 @@ show: mkcerts  ## show the helm chart
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP)
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES)
 
 delete: ## delete the helm chart release
 	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
@@ -169,7 +172,8 @@ delete: ## delete the helm chart release
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
 				 $(CHART_SET) \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl delete -f -
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl delete -f -
 
 deploy_all: namespace namespace_sdp mkcerts deploy_etcd  ## deploy ALL of the helm chart
 	@for i in charts/*; do \
@@ -184,7 +188,8 @@ deploy_all: namespace namespace_sdp mkcerts deploy_etcd  ## deploy ALL of the he
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl apply -f - ; \
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl apply -f - ; \
 	done
 
 delete_all: delete_etcd ## delete ALL of the helm chart release
@@ -200,7 +205,8 @@ delete_all: delete_etcd ## delete ALL of the helm chart release
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)"  \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl delete -f - ; \
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl delete -f - ; \
 	done
 
 poddescribe: ## describe Pods executed from Helm chart
@@ -333,3 +339,11 @@ dump_dashboards:
 load_dashboards:
 	kubectl exec -i pod/mongodb-webjive-test-0 -n $(KUBE_NAMESPACE) -- mongorestore --archive < webjive-dash.dump 
 	
+get_jupyter_port:
+	@kubectl get service -l app=jupyter-oet-test -n $(KUBE_NAMESPACE)  -o jsonpath="{range .items[0]}{'Use this url:http://$(THIS_HOST):'}{.spec.ports[0].nodePort}{'\n'}{end}"
+
+deploy_test_pod:
+	docker run --rm --name test_pod -d -p 2020:22 --mount src="$$(pwd)",target=/home/tango/skampi,type=bind $(IMAGE_TO_TEST)
+
+remove_test_pod:
+	docker stop test_pod
