@@ -35,6 +35,7 @@ Feature: Execute a basic observation for the MVP PI5 subarray
 
 	
 	@XTP-436 @XTP-494
+	please do not accept merge reqest
 	Scenario: A4-Test, Sub-array deallocation of resources
 		Given A running telescope with "4" dishes are allocated to "subarray 1"
 		When I deallocate the resources
