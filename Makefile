@@ -20,6 +20,7 @@ CLUSTER_NAME ?= integration.cluster## For the gangway kubectl setup
 CLIENT_ID ?= 417ea12283741e0d74b22778d2dd3f5d0dcee78828c6e9a8fd5e8589025b8d2f## For the gangway kubectl setup, taken from Gitlab
 CLIENT_SECRET ?= 27a5830ca37bd1956b2a38d747a04ae9414f9f411af300493600acc7ebe6107f## For the gangway kubectl setup, taken from Gitlab
 CHART_SET ?= #for additional flags you want to set when deploying (default empty)
+VALUES ?= values.yaml# root level values files. This will override the chart values files. 
 
 # activate remote debugger for VSCode (ptvsd)
 REMOTE_DEBUG ?= false
@@ -33,40 +34,11 @@ REMOTE_DEBUG ?= false
 # include makefile targets that wrap helm
 -include helm.mk
 
+# install stable chart repo this step si
+helm_add_stable_repo := helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+
 # include makefile targets for testing
 -include test.mk
-
-
-#
-# IMAGE_TO_TEST defines the tag of the Docker image to test
-#
-IMAGE_TO_TEST ?= nexus.engageska-portugal.pt/ska-docker/tango-itango
-# Test runner - pod always running for testing purposes
-TEST_RUNNER = $(shell kubectl get pod -n $(KUBE_NAMESPACE) | grep test-runner | cut -d\  -f1)
-#
-# defines a function to copy the ./test-harness directory into the K8s TEST_RUNNER
-# and then runs the requested make target in the container.
-# capture the output of the test in a build folder inside the container 
-# 
-TANGO_HOST = $(shell kubectl get pods -n $(KUBE_NAMESPACE) | grep tangod | cut -d\  -f1)
-k8s_test = kubectl exec -i $(TEST_RUNNER) --namespace $(KUBE_NAMESPACE) -- rm -fr /app/test-harness && \
-		kubectl cp test-harness/ $(KUBE_NAMESPACE)/$(TEST_RUNNER):/app/test-harness && \
-		kubectl exec -i $(TEST_RUNNER) --namespace $(KUBE_NAMESPACE) -- \
-		/bin/bash -c "cd /app/test-harness && make $1" 2>&1
-
-# run the test function
-# save the status
-# clean out build dir
-# retrieve the new build dir
-# exit the saved status
-k8s_test: ## test the application on K8s
-	$(call k8s_test,test); \
-	  status=$$?; \
-	  rm -fr build; \
-	  kubectl cp $(KUBE_NAMESPACE)/$(TEST_RUNNER):/app/test-harness/build/ build/; \
-	  exit $$status
-
-
 
 vars: ## Display variables - pass in DISPLAY and XAUTHORITY
 	@echo "DISPLAY: $(DISPLAY)"
@@ -81,7 +53,7 @@ k8s: ## Which kubernetes are we connected to
 	@kubectl version
 	@echo ""
 	@echo "Helm version:"
-	@helm version --client
+	@$(helm_tiller_prefix) helm version
 
 logs: ## POD logs for descriptor
 	@for i in `kubectl -n $(KUBE_NAMESPACE) get pods -l group=example -o=name`; \
@@ -115,12 +87,16 @@ lint:  ## lint the HELM_CHART of the helm chart
 	cd charts/$(HELM_CHART); pwd; helm lint;
 
 .PHONY: deploy_etcd delete_etcd
-deploy_etcd: ## deploy etcd-operator into namespace
+deploy_etcd: namespace ## deploy etcd-operator into namespace
 	@if ! kubectl get pod -n $(KUBE_NAMESPACE) -o jsonpath='{.items[*].metadata.labels.app}' \
 		| grep -q etcd-operator; then \
 		TMP=`mktemp -d`; \
+		$(helm_add_stable_repo) && \
 		helm fetch stable/etcd-operator --untar --untardir $$TMP && \
-		helm template $(helm_install_shim) $$TMP/etcd-operator -n etc-operator --namespace $(KUBE_NAMESPACE) \
+		helm template $(helm_install_shim) $$TMP/etcd-operator \
+			-n etc-operator --namespace $(KUBE_NAMESPACE) \
+			--set deployments.backupOperator=false \
+			--set deployments.restoreOperator=false \
 		| kubectl apply -n $(KUBE_NAMESPACE) -f -; \
 		n=5; \
     	while ! kubectl api-resources --api-group=etcd.database.coreos.com \
@@ -131,12 +107,16 @@ deploy_etcd: ## deploy etcd-operator into namespace
 	fi
 
 delete_etcd: ## Remove etcd-operator from namespace
-	@if kubectl get pod -n $(KUBE_NAMESPACE) \
+	-@if kubectl get pod -n $(KUBE_NAMESPACE) \
         		-o jsonpath='{.items[*].metadata.labels.app}' \
 		| grep -q etcd-operator; then \
 		TMP=`mktemp -d`; \
+		$(helm_add_stable_repo) && \
 		helm fetch stable/etcd-operator --untar --untardir $$TMP && \
-		helm template $(helm_install_shim) $$TMP/etcd-operator -n etc-operator \
+		helm template $(helm_install_shim) $$TMP/etcd-operator \
+			-n etc-operator --namespace $(KUBE_NAMESPACE) \
+			--set deployments.backupOperator=false \
+			--set deployments.restoreOperator=false \
 		| kubectl delete -n $(KUBE_NAMESPACE) -f -; \
 	fi
 
@@ -169,7 +149,8 @@ deploy: namespace namespace_sdp mkcerts  ## deploy the helm chart
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
 				 $(CHART_SET) \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl apply -f -
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl apply -f -
 
 show: mkcerts  ## show the helm chart
 	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
@@ -179,7 +160,8 @@ show: mkcerts  ## show the helm chart
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP)
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES)
 
 delete: ## delete the helm chart release
 	@helm template $(helm_install_shim) charts/$(HELM_CHART)/ \
@@ -190,7 +172,8 @@ delete: ## delete the helm chart release
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
 				 $(CHART_SET) \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl delete -f -
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl delete -f -
 
 deploy_all: namespace namespace_sdp mkcerts deploy_etcd  ## deploy ALL of the helm chart
 	@for i in charts/*; do \
@@ -205,7 +188,8 @@ deploy_all: namespace namespace_sdp mkcerts deploy_etcd  ## deploy ALL of the he
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)" \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl apply -f - ; \
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl apply -f - ; \
 	done
 
 delete_all: delete_etcd ## delete ALL of the helm chart release
@@ -221,7 +205,8 @@ delete_all: delete_etcd ## delete ALL of the helm chart release
 				 --set ingress.hostname=$(INGRESS_HOST) \
 				 --set ingress.nginx=$(USE_NGINX) \
 	             --set tangoexample.debug="$(REMOTE_DEBUG)"  \
-				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) | kubectl delete -f - ; \
+				 --set helm_deploy.namespace=$(KUBE_NAMESPACE_SDP) \
+				 --values $(VALUES) | kubectl delete -f - ; \
 	done
 
 poddescribe: ## describe Pods executed from Helm chart
@@ -282,6 +267,7 @@ get_versions: ## lists the container images used for particular pods
 
 traefik: ## install the helm chart for traefik (in the kube-system namespace). Input parameter EXTERNAL_IP (i.e. private ip of the master node).
 	@TMP=`mktemp -d`; \
+	$(helm_add_stable_repo) && \
 	helm fetch stable/traefik --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/traefik -n traefik0 --namespace kube-system \
 		--set externalIP="$(EXTERNAL_IP)" \
@@ -290,6 +276,7 @@ traefik: ## install the helm chart for traefik (in the kube-system namespace). I
 
 delete_traefik: ## delete the helm chart for traefik 
 	@TMP=`mktemp -d`; \
+	$(helm_add_stable_repo) && \
 	helm fetch stable/traefik --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/traefik -n traefik0 --namespace kube-system \
 		--set externalIP="$(EXTERNAL_IP)" \
@@ -298,6 +285,7 @@ delete_traefik: ## delete the helm chart for traefik
 
 gangway: ## install gangway authentication for gitlab (in the kube-system namespace). Input parameters: CLIENT_ID, CLIENT_SECRET, INGRESS_HOST, CLUSTER_NAME, API_SERVER_IP, API_SERVER_PORT
 	@TMP=`mktemp -d`; \
+	$(helm_add_stable_repo) && \
 	helm fetch stable/gangway --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/gangway -n gangway0 --namespace kube-system \
 			--values resources/gangway.yaml \
@@ -312,6 +300,7 @@ gangway: ## install gangway authentication for gitlab (in the kube-system namesp
 
 delete_gangway: ## delete install gangway authentication for gitlab. Input parameters: CLIENT_ID, CLIENT_SECRET, INGRESS_HOST, CLUSTER_NAME, API_SERVER_IP, API_SERVER_PORT
 	@TMP=`mktemp -d`; \
+	$(helm_add_stable_repo) && \
 	helm fetch stable/gangway --untar --untardir $$TMP && \
 	helm template $(helm_install_shim) $$TMP/gangway -n gangway0 --namespace kube-system \
 			--values resources/gangway.yaml \
@@ -327,35 +316,11 @@ delete_gangway: ## delete install gangway authentication for gitlab. Input param
 set_context:
 	kubectl config set-context $$(kubectl config current-context) --namespace $${NAMESPACE:-$(KUBE_NAMESPACE)}
 
-smoketest: ## check that the number of waiting containers is zero (10 attempts, wait time 30s).
-	@echo "Smoke test START"; \
-	n=10; \
-	while [ $$n -gt 0 ]; do \
-		waiting=`kubectl get pods -n $(KUBE_NAMESPACE) -o=jsonpath='{.items[*].status.containerStatuses[*].state.waiting.reason}' | wc -w`; \
-		echo "Waiting containers=$$waiting"; \
-		if [ $$waiting -ne 0 ]; then \
-			echo "Waiting 30s for pods to become running...#$$n"; \
-			sleep 30s; \
-		fi; \
-		if [ $$waiting -eq 0 ]; then \
-			echo "Smoke test SUCCESS"; \
-			exit 0; \
-		fi; \
-		if [ $$n -eq 1 ]; then \
-			waiting=`kubectl get pods -n $(KUBE_NAMESPACE) -o=jsonpath='{.items[*].status.containerStatuses[*].state.waiting.reason}' | wc -w`; \
-			echo "Smoke test FAILS"; \
-			echo "Found $$waiting waiting containers: "; \
-			kubectl get pods -n $(KUBE_NAMESPACE) -o=jsonpath='{range .items[*].status.containerStatuses[?(.state.waiting)]}{.state.waiting.message}{"\n"}{end}'; \
-			exit 1; \
-		fi; \
-		n=`expr $$n - 1`; \
-	done
-
 get_status:
 	kubectl get pod,svc,deployments,pv,pvc,ingress -n $(KUBE_NAMESPACE)
 
 redeploy:
-	make delete delete_all && make deploy_all && make wait
+	make delete delete_all && make deploy HELM_CHART=tango-base && make deploy_all && watch kubectl get pods
 	
 wait:
 	pods=$$( kubectl get pods -n $(KUBE_NAMESPACE) -o=jsonpath="{range .items[*]}{.metadata.name}{' '}{end}" ) && \
@@ -374,3 +339,6 @@ dump_dashboards:
 load_dashboards:
 	kubectl exec -i pod/mongodb-webjive-test-0 -n $(KUBE_NAMESPACE) -- mongorestore --archive < webjive-dash.dump 
 	
+get_jupyter_port:
+	@kubectl get service -l app=jupyter-oet-test -n $(KUBE_NAMESPACE)  -o jsonpath="{range .items[0]}{'Use this url:http://$(THIS_HOST):'}{.spec.ports[0].nodePort}{'\n'}{end}"
+
