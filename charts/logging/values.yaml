@@ -12,7 +12,7 @@ apm:
 
 elastic:
   enabled: true
-  use_pv: false # Make use of a persistent volume
+  use_pv: true # Make use of a persistent volume
   image:
     registry: docker.elastic.co
     image: elasticsearch/elasticsearch

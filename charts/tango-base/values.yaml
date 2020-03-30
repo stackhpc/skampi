@@ -44,7 +44,7 @@ itango:
     pullPolicy: IfNotPresent
 
 tangotest:
-  enabled: false
+  enabled: true
   image:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-java
@@ -60,7 +60,7 @@ jive:
     pullPolicy: IfNotPresent
 
 vnc:
-  enabled: false
+  enabled: true
   nodeport_enabled: false
   nodeport_vnc: 32081
   nodeport_novnc: 32082
@@ -83,7 +83,7 @@ vscode:
     pullPolicy: IfNotPresent
 
 tangorest:
-  enabled: false
+  enabled: true
   replicas: 1
   image:
     registry: nexus.engageska-portugal.pt/ska-docker
@@ -101,7 +101,7 @@ logviewer:
 
 # Configure Ingress resource that allow you to access the Tango REST API
 ingress:
-  enabled: false
+  enabled: true
   hostname: tango-base.minikube.local
 
   # Ingress annotations
