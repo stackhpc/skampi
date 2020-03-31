@@ -20,6 +20,7 @@ stages:
   - debug
 
 .pip_install_test_requirements: &pip_install_test_requirements |-
+  cd pre-deployment
   pip3 install -r test-requirements.txt
 
 .teardown_k8s_test_resources: &teardown_k8s_test_resources |-
