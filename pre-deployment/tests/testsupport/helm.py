@@ -30,7 +30,7 @@ class HelmTestAdaptor(object):
         if set_flag_values:
             set_flag = self.create_set_cli_flag_from(set_flag_values)
         
-        cmd = f"helm template {release_name} charts/{chart_name} -s templates/{template} --namespace={self.namespace} {set_flag}"
+        cmd = f"helm template {release_name} ../charts/{chart_name} -s templates/{template} --namespace={self.namespace} {set_flag}"
 
         return self._run_subprocess(cmd.split())
 
