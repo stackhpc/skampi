@@ -10,7 +10,7 @@ import logging
 import pytest
 
 @pytest.mark.xfail
-@scenario("./1.feature", "Telescope startup")
+@scenario("../../../features/1.feature", "Telescope startup")
 def telescope_start():
     logging.info("Testing Telescope Startup")
 

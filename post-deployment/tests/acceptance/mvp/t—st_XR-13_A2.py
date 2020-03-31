@@ -8,6 +8,7 @@ Acceptance tests for MVP.
 """
 import sys
 
+sys.path.append('/app')
 import time
 import signal
 import pytest
@@ -36,7 +37,7 @@ def handlde_timout():
     raise Exception("operation timeout")
 
 #@pytest.mark.xfail
-@scenario("1_XR-13_XTP-494.feature", "A2-Test, Sub-array transitions from IDLE to READY state")
+@scenario("../../../features/1_XR-13_XTP-494.feature", "A2-Test, Sub-array transitions from IDLE to READY state")
 def test_deallocate_resources():
     """Configure Subarray."""
 
