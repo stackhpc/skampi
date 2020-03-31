@@ -18,7 +18,7 @@ class HelmTestAdaptor(object):
         self.namespace = test_namespace
 
     def install(self, chart_name, cmd_args="", release_name=None):
-        cmd = f"helm install charts/{chart_name} --generate-name --namespace={self.namespace} --wait {cmd_args}"
+        cmd = f"helm install ../charts/{chart_name} --generate-name --namespace={self.namespace} --wait {cmd_args}"
         return self._run_subprocess(cmd.split())
 
     def delete(self, helm_release):
@@ -258,7 +258,7 @@ class HelmChart(object):
 
     def __init__(self, name, helm_adaptor, set_flag_values={}):
         self.name = name
-        self.templates_dir = "charts/{}/templates".format(self.name)
+        self.templates_dir = "../charts/{}/templates".format(self.name)
         self._helm_adaptor = helm_adaptor
         self._release_name_stub = self.generate_release_name()
         self._rendered_templates = None
