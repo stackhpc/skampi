@@ -229,6 +229,7 @@ print-debug-info:
   - mv .public public
   environment:
     name: $DEPLOY_ENVIRONMENT
+  when: manual
   artifacts:
     paths:
     - public
