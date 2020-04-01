@@ -28,6 +28,33 @@ def skuid_chart_deployment(helm_adaptor, k8s_api):
 @pytest.mark.no_deploy
 @pytest.mark.usefixtures("skuid_chart")
 class TestSkuidChart:
+    def test_skuid_image_name_and_version(self):
+        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
+        image_name = d.execute("$..*.image[0]")
+
+        assert image_name == "nexus.engageska-portugal.pt/ska-telescope/skuid:1.1.0"
+
+    def test_env_vars_loaded_from_skuid_config_map(self):
+        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
+        configmap_name = parse_yaml_str(self.chart.templates["skuid-cm.yaml"])[0]['metadata']['name']
+
+        configmapref = d.execute("$..*.configMapRef[0]")
+        assert configmapref['name'] == configmap_name
+
+    def test_pv_mount_path_should_be_same_as_data_dir(self, helm_adaptor):
+        data_dir = '/data'
+        chart = HelmChart("skuid", helm_adaptor, set_flag_values={
+            'ingress.enabled': 'true',
+            'skuid.config.data_dir': data_dir
+        })
+
+        d = objectpath.Tree(parse_yaml_str(chart.templates["skuid.yaml"]))
+
+        pv_volume = d.execute("$..*.volumes[0][persistentVolumeClaim is not none][0]")
+        volume_mount = d.execute(f"$..volumeMounts.*[@.name is '{pv_volume['name']}'][0]")
+
+        assert volume_mount['mountPath'] == data_dir
+
     def test_charts(self, skuid_chart):
         ingress_chart = parse_yaml_str(self.chart.templates["skuid-ingress.yaml"])[0]
         assert (
@@ -63,24 +90,10 @@ class TestSkuidChart:
         assert containers_spec["ports"][0]["name"] == "skuid-http"
         assert containers_spec["ports"][0]["containerPort"] == 9870
         assert containers_spec["volumeMounts"][0]["name"] == "skuid-data"
-        assert containers_spec["volumeMounts"][0]["mountPath"] == "/data/"
 
         assert squid_service["spec"]["type"] == "ClusterIP"
         assert squid_service["spec"]["ports"][0]["port"] == 9870
         assert squid_service["spec"]["ports"][0]["targetPort"] == 9870
-
-    def test_skuid_image_name_and_version(self):
-        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
-        image_name = d.execute("$..*.image[0]")
-
-        assert image_name == "nexus.engageska-portugal.pt/ska-telescope/skuid:1.1.0"
-
-    def test_env_vars_loaded_from_skuid_config_map(self):
-        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
-        configmap_name = parse_yaml_str(self.chart.templates["skuid-cm.yaml"])[0]['metadata']['name']
-
-        configmapref = d.execute("$..*.configMapRef[0]")
-        assert configmapref['name'] == configmap_name
 
 
 @pytest.mark.chart_deploy
