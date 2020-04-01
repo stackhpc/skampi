@@ -2,10 +2,11 @@
 """
 Test archiver
 """
-from tango import DevFailed, DeviceProxy, GreenMode, AttributeProxy
+from tango import DevFailed, DeviceProxy, GreenMode, AttributeProxy, ApiUtil, DeviceData
 from time import sleep
 import pytest
 import logging
+import sys
 
 def test_init():
   print("Init test archiver")
@@ -14,17 +15,13 @@ def test_init():
   evt_subscriber_device_proxy.Start()
   sleep(3) # the polling
 
-@pytest.mark.skip(reason="failing")
-def test_configure_attribute():
+def configure_attribute(attribute):
+  conf_manager_proxy = DeviceProxy("archiving/hdbpp/confmanager01")
+
+  logging.info(conf_manager_proxy.Status())
+
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
-  config_manager_device_fqdn = "archiving/hdbpp/confmanager01"
-  conf_manager_proxy = DeviceProxy(config_manager_device_fqdn)
   evt_subscriber_device_proxy = DeviceProxy(evt_subscriber_device_fqdn)
-
-  conf_manager_proxy.set_timeout_millis(5000)
-  # evt_subscriber_device_proxy.set_timeout_millis(5000)
-
-  attribute = "sys/tg_test/1/double_scalar"
 
   is_already_archived = False
   attr_list = evt_subscriber_device_proxy.read_attribute("AttributeList").value
@@ -69,6 +66,34 @@ def test_configure_attribute():
   assert "Archiving          : Started" in result_evt_subscriber
 
   conf_manager_proxy.AttributeRemove(attribute)
+
+def reset_conf_manager():
+  deviceAdm = DeviceProxy("dserver/hdbppcm-srv/01")
+  deviceAdm.DevRestart("archiving/hdbpp/confmanager01")
+  #deviceAdm.RestartServer()
+
+@pytest.mark.xfail
+def test_configure_attribute():
+  attribute = "sys/tg_test/1/double_scalar"
+  
+  sleep_time = 3
+  max_retries = 10
+  for x in range(0, max_retries):
+    try:
+      ApiUtil.cleanup()
+      configure_attribute(attribute)
+      break
+    except DevFailed as df:
+      logging.info("configure_attribute exception: " + str(df.args[0].desc) + ".")
+      if(x == (max_retries - 1)):
+        raise df
+    
+    sleep(sleep_time)
+    
+    try:
+      reset_conf_manager()
+    except DevFailed as df:
+      logging.info("reset_conf_manager exception: " + str(df.args[0].desc) + ".")
 
 def test_archiving_started():
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
