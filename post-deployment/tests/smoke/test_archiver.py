@@ -17,7 +17,7 @@ def test_init():
 
 def configure_attribute(attribute):
   conf_manager_proxy = DeviceProxy("archiving/hdbpp/confmanager01")
-
+  
   logging.info(conf_manager_proxy.Status())
 
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
@@ -69,8 +69,8 @@ def configure_attribute(attribute):
 
 def reset_conf_manager():
   deviceAdm = DeviceProxy("dserver/hdbppcm-srv/01")
-  deviceAdm.DevRestart("archiving/hdbpp/confmanager01")
-  #deviceAdm.RestartServer()
+  #deviceAdm.DevRestart("archiving/hdbpp/confmanager01")
+  deviceAdm.RestartServer()
 
 @pytest.mark.xfail
 def test_configure_attribute():
