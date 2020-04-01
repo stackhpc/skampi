@@ -60,10 +60,6 @@ class TestSkuidChart:
         squid_service = list(filter(lambda x: x["kind"] == "Service", squid_chart))[0]
 
         containers_spec = squid_deployment["spec"]["template"]["spec"]["containers"][0]
-        assert (
-            containers_spec["image"]
-            == "nexus.engageska-portugal.pt/ska-telescope/skuid:0.0.1"
-        )
         assert containers_spec["ports"][0]["name"] == "skuid-http"
         assert containers_spec["ports"][0]["containerPort"] == 9870
         assert containers_spec["volumeMounts"][0]["name"] == "skuid-data"
@@ -72,6 +68,12 @@ class TestSkuidChart:
         assert squid_service["spec"]["type"] == "ClusterIP"
         assert squid_service["spec"]["ports"][0]["port"] == 9870
         assert squid_service["spec"]["ports"][0]["targetPort"] == 9870
+
+    def test_skuid_image_name_and_version(self):
+        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
+        image_name = d.execute("$..*.image[0]")
+
+        assert image_name == "nexus.engageska-portugal.pt/ska-telescope/skuid:1.1.0"
 
     def test_env_vars_loaded_from_skuid_config_map(self):
         d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
