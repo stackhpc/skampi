@@ -10,6 +10,15 @@ skuid:
     pullPolicy: Always # During dev
     basePath: /skuid
   service_port: 9870
+  entity_types:
+    override: true # overrides types via configmap
+    valid_types:
+      sbd: SchedulingBlockDefinition
+      sbi: SchedulingBlockInstance
+      dp: DataProduct
+      opj: ObservingProject
+      opp: ObservingProposal
+      pb: ProcessingBlock
 
 ingress:
   enabled: false

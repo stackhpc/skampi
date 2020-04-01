@@ -1,0 +1,11 @@
+{{ if .Values.skuid.entity_types.override }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skuid-config-{{ template "skuid.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    run: skuid-{{ .Release.Namespace }}
+data:
+  ENTITY_TYPES: {{ toJson .Values.skuid.entity_types.valid_types }}
+{{ end }}

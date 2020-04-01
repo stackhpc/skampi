@@ -24,6 +24,8 @@ spec:
           value: "/data/scan_id_cursor_file"
         - name: SKUID_GENERATOR_ID
           value: "T0001"
+        - name: ENTITY_TYPES_FILE
+          value: "/data/types_file" # TODO map this to /etc/skuid/types_file in new skuid release
         {{ end }}
         image: "{{ .Values.skuid.image.registry }}/{{ .Values.skuid.image.image }}:{{ .Values.skuid.image.tag }}"
         imagePullPolicy: {{ .Values.skuid.image.pullPolicy }}
@@ -40,6 +42,11 @@ spec:
         volumeMounts:
         - name: skuid-data
           mountPath: /data/
+        {{ if .Values.skuid.entity_types.override }}
+        - name: skuid-config
+          mountPath: /data/types_file
+          subPath: types_file
+        {{ end }}
         {{ end }}
 
       {{ if .Values.skuid.use_pv }}
@@ -47,8 +54,16 @@ spec:
       - name: skuid-data
         persistentVolumeClaim:
           claimName: skuid-pvc-{{ .Release.Namespace }}-{{ .Release.Name }}
-      {{ end }}
 
+      {{ if .Values.skuid.entity_types.override }}
+      - name: skuid-config
+        configMap:
+          name: skuid-config-{{ template "skuid.name" . }}-{{ .Release.Name }}
+          items:
+          - key: ENTITY_TYPES
+            path: types_file
+      {{ end }}
+      {{ end }}
 ---
 
 apiVersion: v1
