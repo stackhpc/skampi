@@ -37,7 +37,7 @@ spec:
         {{ end }}
         {{ if .Values.skuid.config.entity_types.override }}
         - name: skuid-config
-          mountPath: /etc/skuid
+          mountPath: {{ .Values.skuid.config.config_dir }}
         {{ end }}
 
       volumes:

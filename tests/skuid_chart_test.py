@@ -42,7 +42,7 @@ class TestSkuidChart:
         assert configmapref['name'] == configmap_name
 
     def test_pv_mount_path_should_be_same_as_data_dir(self, helm_adaptor):
-        data_dir = '/data'
+        data_dir = '/data-test'
         chart = HelmChart("skuid", helm_adaptor, set_flag_values={
             'ingress.enabled': 'true',
             'skuid.config.data_dir': data_dir
@@ -50,10 +50,22 @@ class TestSkuidChart:
 
         d = objectpath.Tree(parse_yaml_str(chart.templates["skuid.yaml"]))
 
-        pv_volume = d.execute("$..*.volumes[0][persistentVolumeClaim is not none][0]")
-        volume_mount = d.execute(f"$..volumeMounts.*[@.name is '{pv_volume['name']}'][0]")
+        volume_mount = d.execute(f"$..volumeMounts.*[@.name is 'skuid-data'][0]")
 
         assert volume_mount['mountPath'] == data_dir
+
+    def test_config_mount_path_should_be_same_as_config_dir(self, helm_adaptor):
+        config_path = '/etc/skuid-test'
+        chart = HelmChart("skuid", helm_adaptor, set_flag_values={
+            'ingress.enabled': 'true',
+            'skuid.config.entity_types.override': 'true',
+            'skuid.config.config_dir': config_path
+        })
+
+        d = objectpath.Tree(parse_yaml_str(chart.templates["skuid.yaml"]))
+        volume_mount = d.execute("$..*.volumeMounts..*[@.name is 'skuid-config'][0]")
+
+        assert volume_mount['mountPath'] == config_path
 
     def test_charts(self, skuid_chart):
         ingress_chart = parse_yaml_str(self.chart.templates["skuid-ingress.yaml"])[0]
