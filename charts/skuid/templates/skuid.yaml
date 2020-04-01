@@ -1,5 +1,4 @@
 {{ if .Values.skuid.enabled }}
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,17 +15,10 @@ spec:
     spec:
       containers:
       - name: skuid-{{ template "skuid.name" . }}-{{ .Release.Name }}
-        {{ if .Values.skuid.use_pv }}
-        env:
-        - name: CURSOR_FILE_PATH
-          value: "/data/cursor_file"
-        - name: SCAN_ID_CURSOR_FILE_PATH
-          value: "/data/scan_id_cursor_file"
-        - name: SKUID_GENERATOR_ID
-          value: "T0001"
-        - name: ENTITY_TYPES_FILE
-          value: "/etc/skuid/entity_types.json"
-        {{ end }}
+        envFrom:
+        - configMapRef:
+            name: skuid-config-{{ template "skuid.name" . }}-{{ .Release.Name }}
+            optional: false
         image: "{{ .Values.skuid.image.registry }}/{{ .Values.skuid.image.image }}:{{ .Values.skuid.image.tag }}"
         imagePullPolicy: {{ .Values.skuid.image.pullPolicy }}
         ports:
@@ -38,27 +30,26 @@ spec:
             port: 9870
           initialDelaySeconds: 5
           timeoutSeconds: 10
-        {{ if .Values.skuid.use_pv }}
         volumeMounts:
+        {{ if .Values.skuid.use_pv }}
         - name: skuid-data
-          mountPath: /data/
-        {{ if .Values.skuid.entity_types.override }}
+          mountPath: {{ .Values.skuid.config.data_dir }}
+        {{ end }}
+        {{ if .Values.skuid.config.entity_types.override }}
         - name: skuid-config
           mountPath: /etc/skuid
         {{ end }}
-        {{ end }}
 
-      {{ if .Values.skuid.use_pv }}
       volumes:
+      {{ if .Values.skuid.use_pv }}
       - name: skuid-data
         persistentVolumeClaim:
           claimName: skuid-pvc-{{ .Release.Namespace }}-{{ .Release.Name }}
-
-      {{ if .Values.skuid.entity_types.override }}
+      {{ end }}
+      {{ if .Values.skuid.config.entity_types.override }}
       - name: skuid-config
         configMap:
           name: skuid-config-{{ template "skuid.name" . }}-{{ .Release.Name }}
-      {{ end }}
       {{ end }}
 ---
 
