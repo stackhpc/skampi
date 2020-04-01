@@ -1,6 +1,7 @@
 import logging
 import json
 
+import objectpath
 import pytest
 
 from tests.testsupport.helm import ChartDeployment, HelmChart
@@ -58,15 +59,6 @@ class TestSkuidChart:
         )[0]
         squid_service = list(filter(lambda x: x["kind"] == "Service", squid_chart))[0]
 
-        envs = squid_deployment["spec"]["template"]["spec"]["containers"][0]["env"]
-        env_names = [i["name"] for i in envs]
-        for env_setting in [
-            "CURSOR_FILE_PATH",
-            "SCAN_ID_CURSOR_FILE_PATH",
-            "SKUID_GENERATOR_ID",
-        ]:
-            assert env_setting in env_names
-
         containers_spec = squid_deployment["spec"]["template"]["spec"]["containers"][0]
         assert (
             containers_spec["image"]
@@ -80,6 +72,13 @@ class TestSkuidChart:
         assert squid_service["spec"]["type"] == "ClusterIP"
         assert squid_service["spec"]["ports"][0]["port"] == 9870
         assert squid_service["spec"]["ports"][0]["targetPort"] == 9870
+
+    def test_env_vars_loaded_from_skuid_config_map(self):
+        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
+        configmap_name = parse_yaml_str(self.chart.templates["skuid-cm.yaml"])[0]['metadata']['name']
+
+        configmapref = d.execute("$..*.configMapRef[0]")
+        assert configmapref['name'] == configmap_name
 
 
 @pytest.mark.chart_deploy
