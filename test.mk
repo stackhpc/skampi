@@ -133,7 +133,7 @@ delete_testing_pod:
 	@kubectl delete pod testing-pod --namespace $(KUBE_NAMESPACE)
 
 attach_testing_pod:
-	@kubectl exec -it testing-pod /bin/bash
+	@kubectl exec -it testing-pod --namespace $(KUBE_NAMESPACE) /bin/bash
 
 location:= $(shell pwd)
 
