@@ -7,5 +7,5 @@ metadata:
   labels:
     run: skuid-{{ .Release.Namespace }}
 data:
-  ENTITY_TYPES: {{ toJson .Values.skuid.entity_types.valid_types }}
+  entity_types.json: {{ toJson .Values.skuid.entity_types.valid_types }}
 {{ end }}

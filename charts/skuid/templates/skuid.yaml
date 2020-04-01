@@ -25,7 +25,7 @@ spec:
         - name: SKUID_GENERATOR_ID
           value: "T0001"
         - name: ENTITY_TYPES_FILE
-          value: "/data/types_file" # TODO map this to /etc/skuid/types_file in new skuid release
+          value: "/etc/skuid/entity_types.json"
         {{ end }}
         image: "{{ .Values.skuid.image.registry }}/{{ .Values.skuid.image.image }}:{{ .Values.skuid.image.tag }}"
         imagePullPolicy: {{ .Values.skuid.image.pullPolicy }}
@@ -44,8 +44,7 @@ spec:
           mountPath: /data/
         {{ if .Values.skuid.entity_types.override }}
         - name: skuid-config
-          mountPath: /data/types_file
-          subPath: types_file
+          mountPath: /etc/skuid
         {{ end }}
         {{ end }}
 
@@ -59,9 +58,6 @@ spec:
       - name: skuid-config
         configMap:
           name: skuid-config-{{ template "skuid.name" . }}-{{ .Release.Name }}
-          items:
-          - key: ENTITY_TYPES
-            path: types_file
       {{ end }}
       {{ end }}
 ---
