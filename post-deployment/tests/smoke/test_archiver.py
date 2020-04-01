@@ -92,8 +92,8 @@ def test_configure_attribute():
     
     try:
       reset_conf_manager()
-    except DevFailed as df:
-      logging.info("reset_conf_manager exception: " + str(df.args[0].desc) + ".")
+    except:
+      logging.info("reset_conf_manager exception: " + sys.exc_info()[0])
 
 def test_archiving_started():
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
