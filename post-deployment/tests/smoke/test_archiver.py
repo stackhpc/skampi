@@ -18,7 +18,7 @@ def test_init():
 def configure_attribute(attribute):
   conf_manager_proxy = DeviceProxy("archiving/hdbpp/confmanager01")
   
-  logging.info(conf_manager_proxy.Status())
+  #logging.info(conf_manager_proxy.Status())
 
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
   evt_subscriber_device_proxy = DeviceProxy(evt_subscriber_device_fqdn)
@@ -67,33 +67,29 @@ def configure_attribute(attribute):
 
   conf_manager_proxy.AttributeRemove(attribute)
 
-def reset_conf_manager():
-  deviceAdm = DeviceProxy("dserver/hdbppcm-srv/01")
-  #deviceAdm.DevRestart("archiving/hdbpp/confmanager01")
-  deviceAdm.RestartServer()
-
 @pytest.mark.xfail
 def test_configure_attribute():
   attribute = "sys/tg_test/1/double_scalar"
   
-  sleep_time = 3
+  sleep_time = 20
   max_retries = 10
   for x in range(0, max_retries):
     try:
       ApiUtil.cleanup()
       configure_attribute(attribute)
       break
-    except DevFailed as df:
-      logging.info("configure_attribute exception: " + str(df.args[0].desc) + ".")
+    except:
+      logging.info("configure_attribute exception: " + str(sys.exc_info()))
       if(x == (max_retries - 1)):
         raise df
     
-    sleep(sleep_time)
-    
     try:
-      reset_conf_manager()
+      deviceAdm = DeviceProxy("dserver/hdbppcm-srv/01")
+      deviceAdm.Kill()
     except:
-      logging.info("reset_conf_manager exception: " + sys.exc_info()[0])
+      logging.info("reset_conf_manager exception: " + str(sys.exc_info()[0]))
+    
+    sleep(sleep_time)
 
 def test_archiving_started():
   evt_subscriber_device_fqdn = "archiving/hdbpp/eventsubscriber01"
