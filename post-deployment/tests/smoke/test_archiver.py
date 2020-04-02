@@ -85,7 +85,7 @@ def test_configure_attribute():
     
     try:
       deviceAdm = DeviceProxy("dserver/hdbppcm-srv/01")
-      deviceAdm.Kill()
+      deviceAdm.RestartServer()
     except:
       logging.info("reset_conf_manager exception: " + str(sys.exc_info()[0]))
     

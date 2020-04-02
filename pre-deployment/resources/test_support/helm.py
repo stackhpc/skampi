@@ -7,7 +7,7 @@ import logging
 import time
 
 
-from tests.testsupport.util import wait_until
+from resources.test_support.util import wait_until
 
 
 class HelmTestAdaptor(object):
