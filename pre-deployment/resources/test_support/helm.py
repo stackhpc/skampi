@@ -48,9 +48,9 @@ class HelmTestAdaptor(object):
             result = subprocess.run(shell_cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE, encoding="utf8", check=True)
         except subprocess.CalledProcessError as e:
-            logging.error("Command ran: %s", " ".join(e.cmd))
-            logging.error("Result stdout: %s", e.stdout)
-            logging.error("Result stderr: %s", e.stderr)
+            logging.error("!!! Ran: %s", " ".join(e.cmd))
+            logging.error("!!! Got stdout: %s", e.stdout)
+            logging.error("!!! Got stderr: %s", e.stderr)
             raise
         return result.stdout
 
@@ -80,10 +80,10 @@ class ChartDeployment(object):
             self.chart_name = chart
             self.release_name = self._parse_release_name_from(stdout)
         except subprocess.CalledProcessError as e:
-            logging.error("CalledProcessError cmd: %s", e.cmd)
-            logging.error("CalledProcessError output: %s", e.output)
-            logging.error("CalledProcessError stderr: %s", e.stderr)
-            logging.error("CalledProcessError stdout: %s", e.stdout)
+            logging.error("!!! Ran: %s", " ".joing(e.cmd))
+            logging.error("!!! Got output: %s", e.output)
+            logging.error("!!! Got stdout: %s", e.stdout)
+            logging.error("!!! Got stderr: %s", e.stderr)
             raise
         except Exception as e:
             raise RuntimeError('!!! Failed to deploy helm chart.', e)
@@ -92,10 +92,10 @@ class ChartDeployment(object):
         assert self.release_name is not None
         api_instance = self._k8s_api.CoreV1Api()
         p_volumes = self._get_persistent_volume_names(api_instance)
-        logging.info("Persistent Volumes to delete: %s", p_volumes)
+        logging.info("+++ Persistent Volumes to delete: %s", p_volumes)
 
         for pod_name in self.additional_pods:
-            logging.info("Deleting additional pod: %s", pod_name)
+            logging.info("+++ Deleting additional pod: %s", pod_name)
             api_instance.delete_namespaced_pod(pod_name, self._helm_adaptor.namespace)
 
         self._helm_adaptor.delete(self.release_name)
@@ -104,7 +104,7 @@ class ChartDeployment(object):
             # Make double sure we only delete PVs in our release
             if self.release_name in pv:
                 api_instance.delete_persistent_volume(pv)
-                logging.info("Deleted PV: %s", pv)
+                logging.info("+++ Deleted PV: %s", pv)
 
     def pod_exec_bash(self, pod_name, command_str):
         """Execute a command on the pod commandline using bash
@@ -124,7 +124,7 @@ class ChartDeployment(object):
         """
         cmd = ['kubectl', 'exec', '-n', self._helm_adaptor.namespace, pod_name,
                '--', '/bin/bash', '-c', command_str]
-        logging.info(cmd)
+        logging.info('+++ Executing: %s', ' '.join(cmd))
         res = self._helm_adaptor._run_subprocess(cmd)
         return res
 
@@ -197,7 +197,7 @@ class ChartDeployment(object):
         assert manifest['metadata']['name'], "The manifest should have a pod name"
         pod_name = manifest['metadata']['name']
 
-        logging.info("Launching pod: %s", pod_name)
+        logging.info("+++ Launching pod: %s", pod_name)
 
         resp = api_instance.create_namespaced_pod(body=manifest,
                                                   namespace=self._helm_adaptor.namespace)
@@ -209,7 +209,7 @@ class ChartDeployment(object):
 
         wait_until(_wait_for_pod_launch, retry_timeout=500)
 
-        logging.info("Launced pod: %s", pod_name)
+        logging.info("+++ Launced pod: %s", pod_name)
         self.additional_pods.append(pod_name)
         return pod_name
 
