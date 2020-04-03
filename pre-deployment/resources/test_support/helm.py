@@ -1,13 +1,13 @@
 import glob
+import logging
 import os
 import random
 import string
 import subprocess
-import logging
-import time
 
+import objectpath
 
-from resources.test_support.util import wait_until
+from resources.test_support.util import wait_until, parse_yaml_str
 
 
 class HelmTestAdaptor(object):
@@ -158,7 +158,7 @@ class ChartDeployment(object):
             The list of pod names that contains the term
         """
         pods = self.get_pods()
-        pods = [pod.to_dict() for pod in pods]
+        pods = [pod.as_collection() for pod in pods]
         all_pod_names = [pod['metadata']['name'] for pod in pods]
         searched_pod_names = [pod_name for pod_name in all_pod_names if term in pod_name]
         return searched_pod_names
@@ -231,7 +231,7 @@ class ChartDeployment(object):
     def _get_persistent_volume_names(self, api_instance):
         ns = self._helm_adaptor.namespace
         pvcs = api_instance.list_namespaced_persistent_volume_claim(namespace=ns)
-        pvcs = pvcs.to_dict()
+        pvcs = pvcs.as_collection()
         p_volumes = []
         if 'items' in pvcs:
             p_volumes = [i['spec']['volume_name'] for i in pvcs['items']]
@@ -255,29 +255,55 @@ class ChartDeployment(object):
 
 
 class HelmChart(object):
+    """ An object to represent the Helm chart under test."""
 
-    def __init__(self, name, helm_adaptor, set_flag_values={}):
+    class RenderedTemplate:
+        """ A part of the Helm chart after templating via `helm template`."""
+        def __init__(self, templated_string):
+            self._rendered_template = templated_string
+
+        def __str__(self):
+            return self._rendered_template
+
+        def as_collection(self):
+            return parse_yaml_str(self._rendered_template)
+
+        def as_objectpath(self):
+            """ An queryable data structure. See https://objectpath.org/ """
+            return objectpath.Tree(self.as_collection())
+
+
+    def __init__(self, name, helm_adaptor, render_templates=True, initial_chart_values={}):
         self.name = name
         self.templates_dir = "../charts/{}/templates".format(self.name)
         self._helm_adaptor = helm_adaptor
         self._release_name_stub = self.generate_release_name()
-        self._rendered_templates = None
-        self.set_flag_values = set_flag_values
+        self.chart_values = initial_chart_values
+        self._rendered_templates = (
+            self._render_all(self.templates_dir, self._release_name_stub, self.chart_values)
+            if render_templates
+            else None)
+
+    def _render_all(self, templates_dir, release_name, chart_values):
+        chart_templates = [os.path.basename(fpath) for fpath in (glob.glob("{}/*.yaml".format(templates_dir)))]
+        return {template: self.render_template(template, release_name, chart_values)
+                                    for template in
+                                    chart_templates}
 
     @property
     def templates(self):
         if self._rendered_templates is not None:
             return self._rendered_templates
 
-        chart_templates = [os.path.basename(fpath) for fpath in (glob.glob("{}/*.yaml".format(self.templates_dir)))]
-        self._rendered_templates = {template: self.render_template(template, self._release_name_stub, self.set_flag_values)
-                                    for template in
-                                    chart_templates}
+        self._rendered_templates = self._render_all(self.templates_dir, self._release_name_stub, self.chart_values)
         return self._rendered_templates
 
-    def render_template(self, template_file, release_name, set_flag_values={}):
-        return self._helm_adaptor.template(self.name, release_name,
-                template_file, set_flag_values)
+    def render_template(self, template_file, release_name=None, chart_values={}):
+        release_name = self._release_name_stub if release_name is None else release_name
+        templated_string = self._helm_adaptor.template(self.name, release_name,
+                template_file, chart_values)
+        return self.RenderedTemplate(templated_string)
+
 
     @staticmethod
     def generate_release_name():

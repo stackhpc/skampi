@@ -1,11 +1,9 @@
-import logging
 import json
+import logging
 
-import objectpath
 import pytest
 
 from resources.test_support.helm import ChartDeployment, HelmChart
-from resources.test_support.util import parse_yaml_str
 
 
 @pytest.fixture(scope="class")
@@ -13,7 +11,7 @@ def skuid_chart(request, helm_adaptor):
     chart_values = {
         'ingress.enabled': 'true'
     }
-    request.cls.chart = HelmChart("skuid", helm_adaptor, set_flag_values=chart_values)
+    request.cls.chart = HelmChart("skuid", helm_adaptor, initial_chart_values=chart_values)
 
 
 @pytest.fixture(scope="class")
@@ -29,26 +27,26 @@ def skuid_chart_deployment(helm_adaptor, k8s_api):
 @pytest.mark.usefixtures("skuid_chart")
 class TestSkuidChart:
     def test_skuid_image_name_and_version(self):
-        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
+        d = self.chart.templates["skuid.yaml"].as_objectpath()
         image_name = d.execute("$..*.image[0]")
 
         assert image_name == "nexus.engageska-portugal.pt/ska-telescope/skuid:1.1.0"
 
     def test_env_vars_loaded_from_skuid_config_map(self):
-        d = objectpath.Tree(parse_yaml_str(self.chart.templates["skuid.yaml"]))
-        configmap_name = parse_yaml_str(self.chart.templates["skuid-cm.yaml"])[0]['metadata']['name']
+        d = self.chart.templates["skuid.yaml"].as_objectpath()
+        configmap_name = self.chart.templates["skuid-cm.yaml"].as_collection()[0]['metadata']['name']
 
         configmapref = d.execute("$..*.configMapRef[0]")
         assert configmapref['name'] == configmap_name
 
-    def test_pv_mount_path_should_be_same_as_data_dir(self, helm_adaptor):
+    def test_pv_mount_path_should_be_same_as_data_dir(self):
         data_dir = '/data-test'
-        chart = HelmChart("skuid", helm_adaptor, set_flag_values={
+        chart = self.chart.render_template('skuid.yaml', chart_values={ 
             'ingress.enabled': 'true',
             'skuid.config.data_dir': data_dir
         })
 
-        d = objectpath.Tree(parse_yaml_str(chart.templates["skuid.yaml"]))
+        d = chart.as_objectpath()
 
         volume_mount = d.execute(f"$..volumeMounts.*[@.name is 'skuid-data'][0]")
 
@@ -56,19 +54,19 @@ class TestSkuidChart:
 
     def test_config_mount_path_should_be_same_as_config_dir(self, helm_adaptor):
         config_path = '/etc/skuid-test'
-        chart = HelmChart("skuid", helm_adaptor, set_flag_values={
+        chart = HelmChart("skuid", helm_adaptor, initial_chart_values={
             'ingress.enabled': 'true',
             'skuid.config.entity_types.override': 'true',
             'skuid.config.config_dir': config_path
         })
 
-        d = objectpath.Tree(parse_yaml_str(chart.templates["skuid.yaml"]))
+        d = chart.templates["skuid.yaml"].as_objectpath()
         volume_mount = d.execute("$..*.volumeMounts..*[@.name is 'skuid-config'][0]")
 
         assert volume_mount['mountPath'] == config_path
 
     def test_charts(self, skuid_chart):
-        ingress_chart = parse_yaml_str(self.chart.templates["skuid-ingress.yaml"])[0]
+        ingress_chart = self.chart.templates["skuid-ingress.yaml"].as_collection()[0]
         assert (
             ingress_chart["spec"]["rules"][0]["host"]
             == "integration.engageska-portugal.pt"
@@ -80,7 +78,7 @@ class TestSkuidChart:
             == 9870
         )
 
-        pv_chart = parse_yaml_str(self.chart.templates["skuid-pv.yaml"])
+        pv_chart = self.chart.templates["skuid-pv.yaml"].as_collection()
         skuid_pv = list(filter(lambda x: x["kind"] == "PersistentVolume", pv_chart))[0]
         skuid_pvc = list(
             filter(lambda x: x["kind"] == "PersistentVolumeClaim", pv_chart)
@@ -92,7 +90,7 @@ class TestSkuidChart:
         assert skuid_pvc["spec"]["accessModes"] == ["ReadWriteOnce"]
         assert skuid_pvc["spec"]["resources"]["requests"]["storage"] == "100Mi"
 
-        squid_chart = parse_yaml_str(self.chart.templates["skuid.yaml"])
+        squid_chart = self.chart.templates["skuid.yaml"].as_collection()
         squid_deployment = list(
             filter(lambda x: x["kind"] == "Deployment", squid_chart)
         )[0]
