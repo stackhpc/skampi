@@ -101,14 +101,17 @@ def config():
         SubArray(1).configure_from_file(file, False)
     except:
         LOGGER.info("configure from file timed out after %s", timeout)
-        
-    # check that the TMC report subarray as being in the ON state and obsState = READY
+
+    watch(resource('ska_mid/tm_subarray_node/1')).for_a_change_on("obsState")
+     # check that the TMC report subarray as being in the ON state and obsState = READY
     assert_that(resource('ska_mid/tm_subarray_node/1').get('obsState')).is_equal_to('READY')
     logging.info("subarray obsState: " + resource('ska_mid/tm_subarray_node/1').get("obsState"))
     # check that the CSP report subarray as being in the ON state and obsState = READY
+    watch(resource('mid_csp/elt/subarray_01')).for_a_change_on("obsState")
     assert_that(resource('mid_csp/elt/subarray_01').get('obsState')).is_equal_to('READY')
     logging.info("CSPsubarray obsState: " + resource('mid_csp/elt/subarray_01').get("obsState"))
     # check that the SDP report subarray as being in the ON state and obsState = READY
+    watch(resource('mid_sdp/elt/subarray_1')).for_a_change_on("obsState")
     assert_that(resource('mid_sdp/elt/subarray_1').get('obsState')).is_equal_to('READY')
     logging.info("SDPsubarray obsState: " + resource('mid_sdp/elt/subarray_1').get("obsState"))
 
