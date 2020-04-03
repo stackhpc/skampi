@@ -270,13 +270,14 @@ class HelmChart(object):
             return self._rendered_templates
 
         chart_templates = [os.path.basename(fpath) for fpath in (glob.glob("{}/*.yaml".format(self.templates_dir)))]
-        self._rendered_templates = {template: self._helm_adaptor.template(self.name, self._release_name_stub, template, set_flag_values=self.set_flag_values)
+        self._rendered_templates = {template: self.render_template(template, self._release_name_stub, self.set_flag_values)
                                     for template in
                                     chart_templates}
         return self._rendered_templates
 
-    def render_template(self, template_file, release_name):
-        return self._helm_adaptor.template(self.name, release_name, os.path.join(self.templates_dir, template_file))
+    def render_template(self, template_file, release_name, set_flag_values={}):
+        return self._helm_adaptor.template(self.name, release_name,
+                template_file, set_flag_values)
 
     @staticmethod
     def generate_release_name():
