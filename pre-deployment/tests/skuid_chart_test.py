@@ -4,8 +4,8 @@ import json
 import objectpath
 import pytest
 
-from tests.testsupport.helm import ChartDeployment, HelmChart
-from tests.testsupport.util import parse_yaml_str
+from resources.test_support.helm import ChartDeployment, HelmChart
+from resources.test_support.util import parse_yaml_str
 
 
 @pytest.fixture(scope="class")
