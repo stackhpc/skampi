@@ -35,8 +35,13 @@ spec:
         {{ end }}
 
         env:
+          
           - name:  FLUENT_ELASTICSEARCH_HOST
+          {{ if .Values.fluentd.remote }}
+            value: 192.168.93.94
+          {{ else }}
             value: "elastic-{{ template "logging.name" . }}-{{ .Release.Name }}"
+          {{ end }}
           - name:  FLUENT_ELASTICSEARCH_PORT
             value: "9200"
           - name:  FLUENT_ELASTICSEARCH_SCHEME

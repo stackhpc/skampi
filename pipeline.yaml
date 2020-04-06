@@ -1,9 +1,10 @@
 elastic:
-  enabled: true
+  enabled: false
 fluentd:
   enabled: true
+  remote: true
 kibana:
-  enabled: true
+  enabled: false
 tests:
   enabled: true
 hdbppdb:
