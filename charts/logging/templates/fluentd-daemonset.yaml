@@ -38,7 +38,7 @@ spec:
           
           - name:  FLUENT_ELASTICSEARCH_HOST
           {{ if .Values.fluentd.remote }}
-            value: 192.168.93.94
+            value: {{ .Values.fluentd.elastic_host }}
           {{ else }}
             value: "elastic-{{ template "logging.name" . }}-{{ .Release.Name }}"
           {{ end }}

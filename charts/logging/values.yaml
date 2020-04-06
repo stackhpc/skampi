@@ -24,7 +24,8 @@ fluentd:
     image: fluent/fluentd-kubernetes-daemonset
     tag: v1.7-debian-elasticsearch7-2
     pullPolicy: IfNotPresent
-  remote: false
+  remote: true
+  elastic_host: 192.168.93.94 #default
   livenessProbe:
     enabled: true
   logging_rate_throttle:
