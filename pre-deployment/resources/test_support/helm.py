@@ -80,7 +80,7 @@ class ChartDeployment(object):
             self.chart_name = chart
             self.release_name = self._parse_release_name_from(stdout)
         except subprocess.CalledProcessError as e:
-            logging.error("!!! Ran: %s", " ".joing(e.cmd))
+            logging.error("!!! Ran: %s", " ".join(e.cmd))
             logging.error("!!! Got output: %s", e.output)
             logging.error("!!! Got stdout: %s", e.stdout)
             logging.error("!!! Got stderr: %s", e.stderr)
@@ -158,7 +158,7 @@ class ChartDeployment(object):
             The list of pod names that contains the term
         """
         pods = self.get_pods()
-        pods = [pod.as_collection() for pod in pods]
+        pods = [pod.to_dict() for pod in pods]
         all_pod_names = [pod['metadata']['name'] for pod in pods]
         searched_pod_names = [pod_name for pod_name in all_pod_names if term in pod_name]
         return searched_pod_names
@@ -231,7 +231,7 @@ class ChartDeployment(object):
     def _get_persistent_volume_names(self, api_instance):
         ns = self._helm_adaptor.namespace
         pvcs = api_instance.list_namespaced_persistent_volume_claim(namespace=ns)
-        pvcs = pvcs.as_collection()
+        pvcs = pvcs.to_dict()
         p_volumes = []
         if 'items' in pvcs:
             p_volumes = [i['spec']['volume_name'] for i in pvcs['items']]
