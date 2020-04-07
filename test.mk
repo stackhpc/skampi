@@ -24,7 +24,6 @@ k8s_test = tar -c post-deployment/ | \
 		--image-pull-policy=IfNotPresent \
 		--image=$(IMAGE_TO_TEST) -- \
 		/bin/bash -c "mkdir skampi && tar xv --directory skampi --strip-components 1 --warning=all && cd skampi && \
-		mv test-harness/* . && \
 		make KUBE_NAMESPACE=$(KUBE_NAMESPACE) HELM_RELEASE=$(HELM_RELEASE) TANGO_HOST=$(TANGO_HOST) $1 && \
 		tar -czvf /tmp/build.tgz build && \
 		echo '~~~~BOUNDARY~~~~' && \
