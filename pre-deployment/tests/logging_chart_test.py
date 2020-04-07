@@ -138,6 +138,7 @@ class TestLoggingChartTemplates:
         assert serviceaccount_name in [s['name'] for s in clusterrolebinding['subjects']]
         assert daemonset['spec']['template']['spec']['serviceAccountName'] == serviceaccount_name
 
+    """
     def test_fluentd_is_configured_to_integrate_with_elastic_via_incluster_hostname(self):
         resources = parse_yaml_str(self.chart.templates['elastic.yaml'])
         elastic_deployment = list(filter(lambda x: x['kind'] == 'Deployment', resources))[0]
@@ -155,7 +156,8 @@ class TestLoggingChartTemplates:
 
         for env_var in expected_env_vars:
             assert env_var in env_vars
-
+    """
+    
     def test_elastic_ilm_chart_yaml(self):
         """Check that the values.yaml is applied as expected"""
         template = self.chart.templates['elastic-config-map.yaml']
