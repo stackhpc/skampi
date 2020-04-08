@@ -15,7 +15,7 @@ all: test
 # exit with same exit code as test run
 test:install
 	@mkdir -p build
-	python -m pytest | tee pytest.stdout; \
+	PYTHONPATH=/app:/app/skampi:/app/skampi/post-deployment pytest | tee pytest.stdout; \
 		status=$$?; \
 		$(foreach artfct,$(TEST_ARTIFACTS),mv -f $(artfct) build/;) \
 		exit $$status
