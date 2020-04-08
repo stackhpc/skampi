@@ -15,6 +15,7 @@ all: test
 # exit with same exit code as test run
 test:install
 	@mkdir -p build
+	find . -name "*.pyc" -type f -delete && \
 	PYTHONPATH=/app:/app/skampi:/app/skampi/post-deployment pytest | tee pytest.stdout; \
 		status=$$?; \
 		$(foreach artfct,$(TEST_ARTIFACTS),mv -f $(artfct) build/;) \
