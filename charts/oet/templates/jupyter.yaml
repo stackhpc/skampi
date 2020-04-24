@@ -34,7 +34,7 @@ data:
 kind: ConfigMap
 metadata:
   name: jupyter-configmap
-  namespace: integration
+  namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: Service
@@ -56,10 +56,11 @@ spec:
     app: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
 ---
 {{if .Values.jupyter.storage.enabled}}
+{{ if .Values.minikube }}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: jupyter-storage-pv
+  name: jupyter-storage-pv-{{ .Release.Namespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     type: jupyter_storage
@@ -71,20 +72,27 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "{{ .Values.jupyter.storage.hostPath }}"
+    path: /data/jupyter-{{ .Release.Namespace }}-{{ .Release.Name }}/
+{{ end }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: jupyter-storage-pvc
+  name: jupyter-storage-pvc-{{ .Release.Namespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     type: jupyter_storage
     app: jupyter-{{ template "oet.name" . }}-{{ .Release.Name }}
 spec:
+{{ if .Values.minikube }}
   storageClassName: jupyter
   accessModes:
-    - ReadWriteOnce
+  - ReadWriteOnce
+{{ else }}
+  storageClassName: nfss1
+  accessModes:
+  - ReadWriteMany
+{{ end }}
   resources:
     requests:
       storage: {{ .Values.jupyter.storage.capacity }}
@@ -137,7 +145,7 @@ spec:
               path: venv.sh
         - name: storage
           persistentVolumeClaim:
-            claimName: jupyter-storage-pvc
+            claimName: jupyter-storage-pvc-{{ .Release.Namespace }}
         - name: config
           configMap:
             name: jupyter-configmap

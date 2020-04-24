@@ -342,8 +342,9 @@ load_dashboards:
 get_jupyter_port:
 	@kubectl get service -l app=jupyter-oet-test -n $(KUBE_NAMESPACE)  -o jsonpath="{range .items[0]}{'Use this url:http://$(THIS_HOST):'}{.spec.ports[0].nodePort}{'\n'}{end}"
 
-deploy_test_pod:
-	docker run --rm --name test_pod -d -p 2020:22 --mount src="$$(pwd)",target=/home/tango/skampi,type=bind $(IMAGE_TO_TEST)
+test_ssl:
+	curl -v https://$(THIS_HOST) -H 'Host: $(INGRESS_HOST) '2>&1 | awk 'BEGIN { cert=0 } /^\* SSL connection/ { cert=1 } /^\*/ { if (cert) print }'
 
-remove_test_pod:
-	docker stop test_pod
+clear_certificates:
+	rm charts/webjive/data/tls.*
+	rm charts/tango-base/secrets/tls.*

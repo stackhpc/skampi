@@ -4,6 +4,7 @@
 
 display: ":0"
 xauthority: "~/.Xauthority"
+minikube: true
 
 pv:
   enabled: true
@@ -41,7 +42,7 @@ dsconfig:
   image:
     registry: nexus.engageska-portugal.pt/ska-docker
     image: tango-dsconfig
-    tag: latest
+    tag: 1.2.5.1
     pullPolicy: IfNotPresent
 
 hdbppviewer:

@@ -1,15 +1,16 @@
 # Default values for oet.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+minikube: true
 
 ssh:
   enabled: true
   nodePort:
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
-    image: oet-ssh
-    tag: 0.3.0
-    pullPolicy: Always
+    image: observation-execution-tool-ssh
+    tag: 0.4.4
+    pullPolicy: IfNotPresent
   livenessProbe:
     enabled: true
     initialDelaySeconds: 0
@@ -30,9 +31,9 @@ itango:
   nodePort:
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
-    image: oet-ssh
-    tag: 0.3.0
-    pullPolicy: Always
+    image: observation-execution-tool-ssh
+    tag: 0.4.4
+    pullPolicy: IfNotPresent
   livenessProbe:
     enabled: true
     initialDelaySeconds: 0
@@ -52,9 +53,9 @@ rest:
   enabled: true
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
-    image: oet
-    tag: 0.3.0
-    pullPolicy: Always
+    image: observation-execution-tool
+    tag: 0.4.4
+    pullPolicy: IfNotPresent
   livenessProbe:
     enabled: true
     initialDelaySeconds: 0
@@ -79,9 +80,9 @@ jupyter:
     capacity: 0.1G
   image:
     registry: nexus.engageska-portugal.pt/ska-telescope
-    image: oet-jupyter
-    tag: 0.3.0
-    pullPolicy: Always
+    image: observation-execution-tool-jupyter
+    tag: 0.4.4
+    pullPolicy: IfNotPresent
   livenessProbe:
     enabled: true
     initialDelaySeconds: 0
