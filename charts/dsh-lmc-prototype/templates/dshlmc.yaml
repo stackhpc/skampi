@@ -23,15 +23,13 @@ spec:
   - name: dsh-lmc-config
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
     imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
-    command: ["/bin/sh", "-c"]
-    args:
-      - cd /opt/Software/SKA/DishLMC-SAFE/scripts
-      - ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json
+    command: ["/bin/bash"]
+    args: ["-c", "cd /opt/Software/SKA/DishLMC-SAFE/scripts && ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json "]
     env:
     - name: TANGO_HOST
-      value: databaseds-dshlmc-{{ .Release.Name }}:10000
+      value: databaseds-tango-base-test:10000
     - name: MYSQL_HOST
-      value: tangodb-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}:3306
+      value: tangodb-tango-base-test:3306
     - name: MYSQL_DATABASE
       value: "{{ .Values.dshlmc.db.db }}"
     - name: MYSQL_USER
