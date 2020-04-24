@@ -13,7 +13,7 @@
 #        --docker-server=<REGISTRY> \
 #        --docker-username=<REGISTRY_USER> \
 #        --docker-password=<REGISTRY_PASSWORD> \
-#        --docker-email=<USER_EMAIL> 
+#        --docker-email=<USER_EMAIL>
 
 # Only enable Helm tests when using Tiller
 helmTests: true
@@ -29,6 +29,13 @@ dshlmc:
     db: tango
     user: tango
     password: tango
+
+dsconfig:
+  image:
+    registry: nexus.engageska-portugal.pt/ska-docker
+    image: tango-dsconfig
+    tag: 1.2.5.1
+    pullPolicy: IfNotPresent
 
 nodeSelector: {}
 

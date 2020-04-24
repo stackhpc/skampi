@@ -46,6 +46,27 @@ spec:
        - -c
        - "sleep infinity"
 
+  - name: dsconfig
+    image: "{{ .Values.dsconfig.image.registry }}/{{ .Values.dsconfig.image.image }}:{{ .Values.dsconfig.image.tag }}"
+    imagePullPolicy: {{ .Values.dsconfig.image.pullPolicy }}
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ .Release.Name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ .Release.Name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ .Values.dshlmc.db.db }}"
+    - name: MYSQL_USER
+      value: "{{ .Values.dshlmc.db.user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ .Values.dshlmc.db.password }}"
+    command:
+       - sh
+    args:
+       - -c
+       - "sleep infinity"
+
+
 {{- with .Values.dshlmc.env }}
 {{ toYaml . | indent 4 }}
 {{- end }}
