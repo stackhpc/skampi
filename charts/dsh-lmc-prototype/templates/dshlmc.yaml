@@ -20,19 +20,13 @@ spec:
   {{- end }}
 
   initContainers:
-  - name: dsh-lmc-dsconfig
+  - name: dsh-lmc-config
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
     imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
-    command:
-      - /usr/local/bin/wait-for-it.sh
-      - databaseds-tango-base-{{ .Release.Name }}:10000
-      - --timeout=30
-      - --strict
-      - --
+    command: ["/bin/sh", "-c"]
+    args:
       - cd /opt/Software/SKA/DishLMC-SAFE/scripts
-      - ./configure_lmc.sh
-      - --no-rootpass
-      - --config=../config/sample_config.json
+      - ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json
     env:
     - name: TANGO_HOST
       value: databaseds-dshlmc-{{ .Release.Name }}:10000
@@ -49,8 +43,9 @@ spec:
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
     imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
     command:
-       - "bin/bash"
-       - "-c"
+       - sh
+    args:
+       - -c
        - "sleep infinity"
 
 {{- with .Values.dshlmc.env }}
