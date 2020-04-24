@@ -1,0 +1,73 @@
+{{ if .Values.dshlmc.enabled }}
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dsh-lmc-prototype-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: dshlmc-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}
+    chart: {{ template "dsh-lmc-prototype.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  {{- if .Values.pullSecrets }}
+  imagePullSecrets:
+  {{- range .Values.pullSecrets }}
+    - name: {{ . }}
+  {{- end}}
+  {{- end }}
+
+  initContainers:
+  - name: dsh-lmc-dsconfig
+    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
+    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+    command:
+      - /usr/local/bin/wait-for-it.sh
+      - databaseds-tango-base-{{ .Release.Name }}:10000
+      - --timeout=30
+      - --strict
+      - --
+      - cd /opt/Software/SKA/DishLMC-SAFE/scripts
+      - ./configure_lmc.sh
+      - --no-rootpass
+      - --config=../config/sample_config.json
+    env:
+    - name: TANGO_HOST
+      value: databaseds-dshlmc-{{ .Release.Name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ .Values.dshlmc.db.db }}"
+    - name: MYSQL_USER
+      value: "{{ .Values.dshlmc.db.user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ .Values.dshlmc.db.password }}"
+  containers:
+  - name: dish-master
+    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
+    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+    command:
+       - "bin/bash"
+       - "-c"
+       - "sleep infinity"
+
+{{- with .Values.dshlmc.env }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+  restartPolicy: Always
+{{- with .Values.nodeSelector }}
+  nodeSelector:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.affinity }}
+  affinity:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.tolerations }}
+  tolerations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+
+{{ end }}
