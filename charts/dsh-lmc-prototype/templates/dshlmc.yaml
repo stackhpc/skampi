@@ -27,9 +27,9 @@ spec:
     args: ["-c", "cd /opt/Software/SKA/DishLMC-SAFE/scripts && ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json "]
     env:
     - name: TANGO_HOST
-      value: databaseds-tango-base-test:10000
+      value: databaseds-tango-base-{{ .Release.Name }}:10000
     - name: MYSQL_HOST
-      value: tangodb-tango-base-test:3306
+      value: tangodb-tango-base-{{ .Release.Name }}:3306
     - name: MYSQL_DATABASE
       value: "{{ .Values.dshlmc.db.db }}"
     - name: MYSQL_USER
