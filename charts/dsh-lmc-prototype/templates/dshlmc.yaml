@@ -34,7 +34,7 @@ spec:
        - sh
     args:
        - -c
-       - "sleep infinity"
+       - "./bin/dish-master 1"
     env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
 
   - name: ds-simulator
@@ -106,18 +106,6 @@ spec:
        - -c
        - "./bin/spf-simulator 1"
     env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
-
-  - name: dsconfig
-    image: "{{ .Values.dsconfig.image.registry }}/{{ .Values.dsconfig.image.image }}:{{ .Values.dsconfig.image.tag }}"
-    imagePullPolicy: {{ .Values.dsconfig.image.pullPolicy }}
-    env:
-
-    command:
-       - sh
-    args:
-       - -c
-       - "sleep infinity"
-
 
 {{- with .Values.dshlmc.env }}
 {{ toYaml . | indent 4 }}
