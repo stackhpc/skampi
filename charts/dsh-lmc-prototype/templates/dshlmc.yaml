@@ -34,7 +34,7 @@ spec:
        - sh
     args:
        - -c
-       - "sleep infinity"
+       - "./bin/dish-master 1"
     env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: ds-simulator
