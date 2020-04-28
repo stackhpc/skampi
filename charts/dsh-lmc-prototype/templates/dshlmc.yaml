@@ -25,17 +25,7 @@ spec:
     imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
     command: ["/bin/bash"]
     args: ["-c", "cd /opt/Software/SKA/DishLMC-SAFE/scripts && ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json "]
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
   containers:
   - name: dish-master
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -45,17 +35,7 @@ spec:
     args:
        - -c
        - "sleep infinity"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: ds-simulator
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -65,17 +45,7 @@ spec:
     args:
        - -c
        - "./bin/ds-simulator 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: dsctrl-simulator
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -85,17 +55,7 @@ spec:
     args:
        - -c
        - "./bin/dsctrl-simulator 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: lmc-logger
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -105,17 +65,7 @@ spec:
     args:
        - -c
        - "./bin/lmc-logger 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: pdu-manager
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -125,17 +75,7 @@ spec:
     args:
        - -c
        - "sleep infinity"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: pdu-simulator
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -145,17 +85,7 @@ spec:
     args:
        - -c
        - "./bin/pdu-simulator 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: rx-simulator
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -165,17 +95,7 @@ spec:
     args:
        - -c
        - "./bin/rx-simulator 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: spf-simulator
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
@@ -185,32 +105,13 @@ spec:
     args:
        - -c
        - "./bin/spf-simulator 1"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+    env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
 
   - name: dsconfig
     image: "{{ .Values.dsconfig.image.registry }}/{{ .Values.dsconfig.image.image }}:{{ .Values.dsconfig.image.tag }}"
     imagePullPolicy: {{ .Values.dsconfig.image.pullPolicy }}
     env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ .Release.Name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ .Release.Name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ .Values.dshlmc.db.db }}"
-    - name: MYSQL_USER
-      value: "{{ .Values.dshlmc.db.user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ .Values.dshlmc.db.password }}"
+
     command:
        - sh
     args:

@@ -30,3 +30,17 @@ Create chart name and version as used by the chart label.
 {{- define "dsh-lmc-prototype.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{/* Shared environment variables between all devices */}}
+{{ define "dsh-lmc-prototype.shared_enviroment" }}
+  - name: TANGO_HOST
+    value: databaseds-tango-base-{{ .Release.Name }}:10000
+  - name: MYSQL_HOST
+    value: tangodb-tango-base-{{ .Release.Name }}:3306
+  - name: MYSQL_DATABASE
+    value: "{{ .Values.dshlmc.db.db }}"
+  - name: MYSQL_USER
+    value: "{{ .Values.dshlmc.db.user }}"
+  - name: MYSQL_PASSWORD
+    value: "{{ .Values.dshlmc.db.password }}"
+{{- end }}
