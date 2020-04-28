@@ -32,7 +32,7 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{/* Shared environment variables between all devices */}}
-{{ define "dsh-lmc-prototype.shared_enviroment" }}
+{{ define "dsh-lmc-prototype.shared_environment" }}
   - name: TANGO_HOST
     value: databaseds-tango-base-{{ .Release.Name }}:10000
   - name: MYSQL_HOST
