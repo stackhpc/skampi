@@ -24,7 +24,7 @@ spec:
     image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
     imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
     command: ["/bin/bash"]
-    args: ["-c", "cd /opt/Software/SKA/DishLMC-SAFE/scripts && ./configure_lmc.sh --no-rootpass --config=../config/sample_config.json "]
+    args: ["-c", "sed -i \"s/ska-lmc-vm:10000/$TANGO_HOST/g\" ./config/sample_config.json && ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json "]
     env: {{ include "dsh-lmc-prototype.shared_enviroment" . | indent 2 }}
   containers:
   - name: dish-master
