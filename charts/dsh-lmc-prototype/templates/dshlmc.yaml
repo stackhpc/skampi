@@ -44,6 +44,7 @@ spec:
          sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/defaults/main.yml  &&\
          sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/templates/lmc_cfg.j2  &&\
          sed -i \"s/: \\\"1\\\"/: \\\"{{ . }}\\\"/g\" .//ansible/roles/configure/defaults/main.yml &&\
+         /usr/local/bin/wait-for-it.sh \"$TANGO_HOST\" --timeout=30 --strict &&\
          ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json"
     env:
     - name: TANGO_HOST
