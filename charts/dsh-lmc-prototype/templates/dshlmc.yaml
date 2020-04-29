@@ -18,12 +18,12 @@
 {{- $db_password := .Values.dshlmc.db.password -}}
 
 
-{{- range tuple "1" "2" }}
+{{- range .Values.dshlmc.dishes }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dsh-lmc-prototype-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}-{{ . }}
+  name: {{ $dsh_lmc_prototype_name }}-{{ $release_name }}-{{ . }}
   namespace: {{ $release_namespace }}
   labels:
     app: dshlmc-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}

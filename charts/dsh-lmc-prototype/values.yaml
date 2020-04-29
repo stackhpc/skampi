@@ -29,6 +29,11 @@ dshlmc:
     db: tango
     user: tango
     password: tango
+  dishes:
+    - 1
+    - 2
+    - 3
+    - 4
 
 nodeSelector: {}
 
