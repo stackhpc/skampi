@@ -18,7 +18,7 @@
 {{- $db_password := .Values.dshlmc.db.password -}}
 
 
-{{- range tuple "1" }}
+{{- range tuple "1" "2" }}
 ---
 apiVersion: v1
 kind: Pod
@@ -43,6 +43,7 @@ spec:
          sed -i \"s/0001/000{{ . }}/g\" ./config/sample_config.json &&\
          sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/defaults/main.yml  &&\
          sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/templates/lmc_cfg.j2  &&\
+         sed -i \"s/: \\\"1\\\"/: \\\"{{ . }}\\\"/g\" .//ansible/roles/configure/defaults/main.yml &&\
          ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json"
     env:
     - name: TANGO_HOST
