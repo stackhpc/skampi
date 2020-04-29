@@ -15,7 +15,7 @@ import pytest
 from pytest_bdd import scenario, given, when, then
 
 from oet.domain import SKAMid, SubArray
-from helpers import resource, watch, take_subarray, restart_subarray
+from resources.test_support.helpers import resource, watch, take_subarray, restart_subarray
 
 def update_file(file_name):
     """Update configuration file"""
@@ -39,7 +39,7 @@ def handlde_timout():
     raise Exception("operation timeout")
 
 #@pytest.mark.xfail
-@scenario("scan_id.feature", "OET requests a scan ID")
+@scenario("../../../features/scan_id.feature", "OET requests a scan ID")
 def test_request_scan_id():
     """Test scan ID."""
 
