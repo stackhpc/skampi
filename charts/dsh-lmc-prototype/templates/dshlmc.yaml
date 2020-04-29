@@ -1,127 +1,222 @@
 {{ if .Values.dshlmc.enabled }}
 
+{{- $chart_name := .Chart.Name -}}
+
+{{- $release_namespace := .Release.Namespace -}}
+{{- $release_name := .Release.Name -}}
+{{- $release_service := .Release.Service -}}
+
+{{- $dsh_lmc_prototype_name :=  default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+
+{{- $image_reg := .Values.dshlmc.image.registry -}}
+{{- $image_image := .Values.dshlmc.image.image -}}
+{{- $image_tag := .Values.dshlmc.image.tag -}}
+{{- $image_pull_policy := .Values.dshlmc.image.pullPolicy -}}
+
+{{- $db_db := .Values.dshlmc.db.db -}}
+{{- $db_user := .Values.dshlmc.db.user -}}
+{{- $db_password := .Values.dshlmc.db.password -}}
+
+
+{{- range tuple "1" }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dsh-lmc-prototype-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}
-  namespace: {{ .Release.Namespace }}
+  name: dsh-lmc-prototype-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}-{{ . }}
+  namespace: {{ $release_namespace }}
   labels:
-    app: dshlmc-{{ template "dsh-lmc-prototype.name" . }}-{{ .Release.Name }}
-    chart: {{ template "dsh-lmc-prototype.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    app: dshlmc-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}
+    chart: {{ $dsh_lmc_prototype_name }}
+    release: {{ $release_name }}
+    heritage: {{ $release_service }}
 spec:
-  {{- if .Values.pullSecrets }}
-  imagePullSecrets:
-  {{- range .Values.pullSecrets }}
-    - name: {{ . }}
-  {{- end}}
-  {{- end }}
-
   initContainers:
-  - name: dsh-lmc-config
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
-    command: ["/bin/bash"]
-    args: ["-c", "sed -i \"s/ska-lmc-vm:10000/$TANGO_HOST/g\" ./config/sample_config.json && ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json "]
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+  - name: dsh-lmc-config-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
+    command:
+      - /bin/bash
+    args:
+      - -c
+      - "sed -i \"s/ska-lmc-vm:10000/$TANGO_HOST/g\" ./config/sample_config.json &&\
+         sed -i \"s/0001/000{{ . }}/g\" ./config/sample_config.json &&\
+         sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/defaults/main.yml  &&\
+         sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/templates/lmc_cfg.j2  &&\
+         ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
   containers:
-  - name: dish-master
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: dish-master-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/dish-master 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/dish-master {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: ds-simulator
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: ds-simulator-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/ds-simulator 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/ds-simulator {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: dsctrl-simulator
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: dsctrl-simulator-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/dsctrl-simulator 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/dsctrl-simulator {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: lmc-logger
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: lmc-logger-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/lmc-logger 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/lmc-logger {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: pdu-manager
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: pdu-manager-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
        - "sleep infinity"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: pdu-simulator
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: pdu-simulator-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/pdu-simulator 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/pdu-simulator {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: rx-simulator
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: rx-simulator-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/rx-simulator 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/rx-simulator {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-  - name: spf-simulator
-    image: "{{ .Values.dshlmc.image.registry }}/{{ .Values.dshlmc.image.image }}:{{ .Values.dshlmc.image.tag }}"
-    imagePullPolicy: {{ .Values.dshlmc.image.pullPolicy }}
+  - name: spf-simulator-{{ . }}
+    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+    imagePullPolicy: {{ $image_pull_policy }}
     command:
        - sh
     args:
        - -c
-       - "./bin/spf-simulator 1"
-    env: {{ include "dsh-lmc-prototype.shared_environment" . | indent 2 }}
+       - "./bin/spf-simulator {{ . }}"
+    env:
+    - name: TANGO_HOST
+      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: MYSQL_HOST
+      value: tangodb-tango-base-{{ $release_name }}:3306
+    - name: MYSQL_DATABASE
+      value: "{{ $db_db }}"
+    - name: MYSQL_USER
+      value: "{{ $db_user }}"
+    - name: MYSQL_PASSWORD
+      value: "{{ $db_password }}"
 
-{{- with .Values.dshlmc.env }}
-{{ toYaml . | indent 4 }}
-{{- end }}
-  restartPolicy: Always
-{{- with .Values.nodeSelector }}
-  nodeSelector:
-{{ toYaml . | indent 4 }}
-{{- end }}
-{{- with .Values.affinity }}
-  affinity:
-{{ toYaml . | indent 4 }}
-{{- end }}
-{{- with .Values.tolerations }}
-  tolerations:
-{{ toYaml . | indent 4 }}
+
 {{- end }}
 
 {{ end }}
