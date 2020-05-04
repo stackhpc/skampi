@@ -69,14 +69,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: ds-simulator-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -89,14 +81,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: dsctrl-simulator-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -109,14 +93,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: lmc-logger-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -129,14 +105,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: pdu-manager-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -149,14 +117,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: pdu-simulator-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -169,14 +129,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: rx-simulator-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -189,14 +141,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
 
   - name: spf-simulator-{{ . }}
     image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
@@ -209,15 +153,6 @@ spec:
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
-
 
 {{- end }}
 
