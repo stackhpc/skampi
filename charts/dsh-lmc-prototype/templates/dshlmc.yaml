@@ -13,13 +13,28 @@
 {{- $image_tag := .Values.dshlmc.image.tag -}}
 {{- $image_pull_policy := .Values.dshlmc.image.pullPolicy -}}
 
+{{- $ds_image_reg := .Values.dsconfig.image.registry -}}
+{{- $ds_image_image := .Values.dsconfig.image.image -}}
+{{- $ds_image_tag := .Values.dsconfig.image.tag -}}
+
 {{- $db_db := .Values.dshlmc.db.db -}}
 {{- $db_user := .Values.dshlmc.db.user -}}
 {{- $db_password := .Values.dshlmc.db.password -}}
 
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "dshlmc-configuration-json-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}"
+  namespace: {{ $release_namespace }}
+data:
+  configuration.json:
+{{ (tpl (.Files.Glob "data/configuration.json").AsConfig . ) | indent 2  }}
 
 {{- range .Values.dshlmc.dishes }}
 ---
+
 apiVersion: v1
 kind: Pod
 metadata:
@@ -31,129 +46,126 @@ metadata:
     release: {{ $release_name }}
     heritage: {{ $release_service }}
 spec:
+  volumes:
+  - name: configuration
+    configMap:
+      name: "dshlmc-configuration-json-{{ $dsh_lmc_prototype_name }}-{{ $release_name }}"
   initContainers:
-  - name: dsh-lmc-config-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
+  - name: dsconfig-init-{{ . }}
+    image: "{{ $ds_image_reg }}/{{ $ds_image_image }}:{{ $ds_image_tag }}"
+    imagePullPolicy: IfNotPresent
     command:
-      - /bin/bash
-    args:
-      - -c
-      - "sed -i \"s/ska-lmc-vm:10000/$TANGO_HOST/g\" ./config/sample_config.json &&\
-         sed -i \"s/0001/000{{ . }}/g\" ./config/sample_config.json &&\
-         sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/defaults/main.yml  &&\
-         sed -i \"s/0001/000{{ . }}/g\"  ./ansible/roles/configure/templates/lmc_cfg.j2  &&\
-         sed -i \"s/: \\\"1\\\"/: \\\"{{ . }}\\\"/g\" .//ansible/roles/configure/defaults/main.yml &&\
-         /usr/local/bin/wait-for-it.sh \"$TANGO_HOST\" --timeout=30 --strict &&\
-         ./scripts/configure_lmc.sh --no-rootpass --config=./config/sample_config.json"
+      - /usr/local/bin/wait-for-it.sh
+      - databaseds-tango-base-{{ $release_name }}:10000
+      - --timeout=30
+      - --strict
+      - --
+      - json2tango -w -a -u data/configuration.json
     env:
     - name: TANGO_HOST
       value: databaseds-tango-base-{{ $release_name }}:10000
-    - name: MYSQL_HOST
-      value: tangodb-tango-base-{{ $release_name }}:3306
-    - name: MYSQL_DATABASE
-      value: "{{ $db_db }}"
-    - name: MYSQL_USER
-      value: "{{ $db_user }}"
-    - name: MYSQL_PASSWORD
-      value: "{{ $db_password }}"
+    volumeMounts:
+    - name: configuration
+      mountPath: data
+      readOnly: true
+
   containers:
-  - name: dish-master-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/dish-master {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: dish-master-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/dish-master {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: ds-simulator-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/ds-simulator {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: ds-simulator-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/ds-simulator {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: dsctrl-simulator-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/dsctrl-simulator {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: dsctrl-simulator-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/dsctrl-simulator {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: lmc-logger-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/lmc-logger {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: lmc-logger-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/lmc-logger {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: pdu-manager-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "sleep infinity"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: pdu-manager-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "sleep infinity"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: pdu-simulator-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/pdu-simulator {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: pdu-simulator-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/pdu-simulator {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: rx-simulator-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/rx-simulator {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: rx-simulator-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/rx-simulator {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-  - name: spf-simulator-{{ . }}
-    image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
-    imagePullPolicy: {{ $image_pull_policy }}
-    command:
-       - sh
-    args:
-       - -c
-       - "./bin/spf-simulator {{ . }}"
-    env:
-    - name: TANGO_HOST
-      value: databaseds-tango-base-{{ $release_name }}:10000
+    - name: spf-simulator-{{ . }}
+      image: "{{ $image_reg }}/{{ $image_image }}:{{ $image_tag }}"
+      imagePullPolicy: {{ $image_pull_policy }}
+      command:
+        - sh
+      args:
+        - -c
+        - "./bin/spf-simulator {{ . }}"
+      env:
+      - name: TANGO_HOST
+        value: databaseds-tango-base-{{ $release_name }}:10000
 
-{{- end }}
+  {{- end }}
 
 {{ end }}
