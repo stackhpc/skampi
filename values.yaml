@@ -11,7 +11,7 @@ hdbppdb:
 archiver:
   enabled: false
 
-minikube: true
+minikube: false
 
 pv:
-  storageClassName: nfss1
+  storageClassName: cinder-csi
